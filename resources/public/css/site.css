@@ -1,0 +1,72 @@
+.body-container {
+  font-family: 'Helvetica Neue', Verdana, Helvetica, Arial, sans-serif;
+  max-width: 640px;
+  margin: 0 auto;
+  padding-top: 72px;
+  -webkit-font-smoothing: antialiased;
+  font-size: 1.125em;
+  color: #333;
+  line-height: 1.5em;
+}
+
+h1, h2, h3 {
+  color: #000;
+}
+h1 {
+  font-size: 2.5em
+}
+
+h2 {
+  font-size: 2em
+}
+
+h3 {
+  font-size: 1.5em
+}
+
+a {
+  text-decoration: none;
+  color: #09f;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+
+.main {
+  display: flex;
+  flex-flow: row;
+  justify-content: flex-start;
+  border-width: 1px;
+  border-style: solid;
+}
+.applist {
+  display: flex;
+  flex-flow: column;
+  justify-content: space-around;
+  align-items: stretch;
+  border-width: 1px;
+  border-style: solid;
+  width: 30%;
+}
+.app {
+  font-weight: bold;
+  border-width: 1px;
+  border-style: dashed;
+  margin: 5px;
+  padding: 3px;
+}
+.appinfo-cnt {
+  border-width: 1px;
+  border-style: dashed;
+  width: 80%;
+  margin: 5px;
+  padding: 3px;
+}
+#appinfo {
+  border-width: 1px;
+  border-style: solid;
+  padding: 3px;
+  background-color: lightgray;
+}

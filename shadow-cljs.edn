@@ -1,0 +1,9 @@
+{:lein         true
+ :source-paths ["src"]
+ :builds       {:app {:target     :browser
+                      :output-dir "resources/public/js"
+                      :asset-path "/js"
+                      :modules    {:app {:entries [reagent-shadow-sandbox.core]}}
+                      :devtools   {:after-load reagent-shadow-sandbox.core/mount-root}}}
+ :dev-http     {3000 {:root    "resources/public"
+                      :handler reagent-shadow-sandbox.handler/app}}}

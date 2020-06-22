@@ -142,19 +142,15 @@
                      :end? (end? s)
                      :id (matcher id-matcher s)}))
           reducer (completing (records-reducer "GcRefinerRecipe.xml"))]
-      (transduce xf reducer [{:size 0}] (line-seq rdr)))))
-
+      (filter #(not (nil? (:id %)))
+              (transduce xf reducer [{:size 0}] (line-seq rdr))))))
 
 (comment
   (index-transducer (fn [s] (.contains s "GcRefinerRecipe.xml"))
                     (fn [s] (= s "    </Property>"))
-                    "resources/nms/recipes-example.xml")
-  ;; => [{:start 157, :size 1248, :start? true, :end? true, :id "REFINERECIPE_14", :end 1248}
-  ;;     {:start 1248, :size 2223, :start? true, :end? true, :id "REFINERECIPE_15", :end 2223}
-  ;;     {:size 2247}]
-)
-  ;; => Execution error (ArityException) at net.fiendishplatypus.file.index/index-transducer (form-init12067510398177089988.clj:148).
-  ;;    Wrong number of args (1) passed to: net.fiendishplatypus.file.index/records-reducer/fn--62735
+                    "resources/nms/recipes-example.xml"))
+  ;; => ({:start 157, :size 1248, :start? true, :end? true, :id "REFINERECIPE_14", :end 1248}
+  ;;     {:start 1248, :size 2223, :start? true, :end? true, :id "REFINERECIPE_15", :end 2223})
 
 
 (defn load-record
@@ -166,10 +162,3 @@
       (.read (.getChannel file) buffer)
       (.flip buffer)
       (String. (.array buffer)))))
-
-;; transducer practice
-
-(transduce
- (map (fn [x] (Integer/parseInt x)))
- +
- ["1" "2" "3" "4"])

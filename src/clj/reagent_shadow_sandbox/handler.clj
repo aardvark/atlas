@@ -35,9 +35,17 @@
 
 (defn state-storage
   []
-  [{:name "item1" :info "Something not really fancy"}
-   {:name "item2" :info "No info"}
-   {:name "item3" :info ""}
+  [{:name "Ferrite Dust" 
+    :info "Metalic Mineral Extract" 
+    :stack 250
+    :recipes [{:name "Pure Ferite" :ratio "1:1" :time-per-stack "1m 15s"}
+              {:name "Metal Plating" :ration "50:1" :time-per-stack "Instant"}]}
+                                                                   
+   {:name "Metal Plating" :info "Crafted Technology Component" :stack 10}
+   {:name "Sodium"
+    :info "TODO"
+    :stack 250
+    :recipes [{:name "Sodium Nitrate" :ratio "2:1" :time-per-stack "TODO"}]}
    {:name "item4" :info nil}])
   
 

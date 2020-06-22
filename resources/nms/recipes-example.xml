@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--File created using MBINCompiler version (2.51.0)-->
+<Data template="GcRecipeTable">
+  <Property name="Table">
+    <Property value="GcRefinerRecipe.xml">
+      <Property name="Id" value="REFINERECIPE_14" />
+      <Property name="Name" value="RECIPE_OXYGEN" /><!-- Link to LANGUAGE::NMS_LOC*_ENGLISH::Id  -->
+      <Property name="TimeToMake" value="20" />
+      <Property name="Cooking" value="False" />
+      <Property name="Result" value="GcRefinerRecipeElement.xml">
+        <Property name="Id" value="FUEL1" /> <!-- Link to Either GC_SUBSTANCE or GC_PRODUCTS based on InventoryType -->
+        <Property name="Type" value="GcInventoryType.xml">
+          <Property name="InventoryType" value="Substance" />
+        </Property>
+        <Property name="Amount" value="1" />
+      </Property>
+      <Property name="Ingredients">
+        <Property value="GcRefinerRecipeElement.xml">
+          <Property name="Id" value="OXYGEN" />
+          <Property name="Type" value="GcInventoryType.xml">
+            <Property name="InventoryType" value="Substance" />
+          </Property>
+          <Property name="Amount" value="1" />
+        </Property>
+      </Property>
+    </Property>
+    <Property value="GcRefinerRecipe.xml">
+      <Property name="Id" value="REFINERECIPE_15" />
+      <Property name="Name" value="RECIPE_LAUNCHFUEL" />
+      <Property name="TimeToMake" value="120" />
+      <Property name="Cooking" value="False" />
+      <Property name="Result" value="GcRefinerRecipeElement.xml">
+        <Property name="Id" value="JELLY" />
+        <Property name="Type" value="GcInventoryType.xml">
+          <Property name="InventoryType" value="Product" />
+        </Property>
+        <Property name="Amount" value="1" />
+      </Property>
+      <Property name="Ingredients">
+        <Property value="GcRefinerRecipeElement.xml">
+          <Property name="Id" value="LAUNCHSUB" />
+          <Property name="Type" value="GcInventoryType.xml">
+            <Property name="InventoryType" value="Substance" />
+          </Property>
+          <Property name="Amount" value="30" />
+        </Property>
+      </Property>
+    </Property>
+  </Property>
+</Data>

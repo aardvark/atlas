@@ -26,38 +26,50 @@
 
 (def selected-app (atom ""))
 
+(defn recipe-component [recipes]
+  (into [:div.recipes "Recipes:"]
+        (for [recipe recipes]
+          [:div.recipe (str (:name recipe) " "
+                            (:ratio recipe) " " 
+                            (:time-per-stack recipe))])))
+  
+
 (defn app-info-component []
-   [:div @selected-app])
+  [:<>
+    [:div (:info @selected-app)]
+    [:div "Stack size: " (:stack @selected-app)]
+    [recipe-component (:recipes @selected-app)]])
+     
+     
 
 
 (defn item-component [app]
-  [:div.app 
-   {:on-click #(reset! selected-app (:info app))}
+  [:div.app
+   {:on-click #(reset! selected-app app)}
    [:span.appname (:name app)]])
-     
+
 
 (def apps (atom nil))
 
 (defn items-component []
-  (let [query (fn [] 
+  (let [query (fn []
                 (ajax/GET "/atlas/apps"
                   :handler (fn [response]
                              (reset! apps (cljs.reader/read-string response)))))]
     (query)
     (fn []
       (into [:div.applist]
-        (for [app @apps]
-          ^{:key (:name app)} (item-component app))))))
-   
+            (for [app @apps]
+              ^{:key (:name app)} (item-component app))))))
+
 
 (defn atlas-page []
   (fn []
     [:h1 "Atlas"]
-    [:div.main 
-      [items-component]
+    [:div.main
+     [items-component]
      [:div.appinfo-cnt
-       [:div "App info:"]
-       [app-info-component "Not selected"]]]))
+      [app-info-component "Not selected"]]]))
 
 
 ;; -------------------------
@@ -100,7 +112,7 @@
         (session/put! :route {:current-page (page-for current-page)
                               :route-params route-params})
         (clerk/navigate-page! path)))
-        
+
     :path-exists?
     (fn [path]
       (boolean (reitit/match-by-path router path)))})

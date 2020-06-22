@@ -1,3 +1,3 @@
-# reagent-shadow-sandbox
+# Atlas sandbox
 
-Simple Reagent + Shadow sanbox to test out ideas.
+Simple Reagent + Shadow sanbox to test out ideas for atlas like application.

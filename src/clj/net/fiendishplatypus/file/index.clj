@@ -85,7 +85,7 @@
 
 
 (defn records-reducer 
-  [start-id]
+  [id?]
   (fn [xs b]
     (let [a (last xs)]
       (add (butlast xs)
@@ -100,7 +100,7 @@
               :id (:id b)}
 
               ;; found recipe id after to update
-             (and (not (nil? (:id b))) (= (:id a) start-id))
+             (and (not (nil? (:id b))) (id? (:id a)))
              (assoc a :id (:id b) :size (+ (:size a) (:size b)))
 
               ;; found end marker, need to generate additional record for next entry
@@ -115,24 +115,6 @@
 
 
 (defn index
-  "Create file index for passed `f` file. 
-   Uses string predicates `start?` and `end?` for marking start and end of records."
-  [start? end? f]
-  (reduce
-   (records-reducer "GcRefinerRecipe.xml")
-   [{:size 0}]
-   (to-records start? end? f)))
-
-(comment
-  (index (fn [s] (.contains s "GcRefinerRecipe.xml"))
-         (fn [s] (= s "    </Property>"))
-         "resources/nms/recipes-example.xml"))
-  ;; => [{:start 157, :size 1248, :start? true, :end? true, :id "REFINERECIPE_14", :end 1248}
-  ;;     {:start 1248, :size 2223, :start? true, :end? true, :id "REFINERECIPE_15", :end 2223}
-  ;;     {:size 2247}]
-
-
-(defn index-transducer
   [start? end? f]
   (with-open [rdr (clojure.java.io/reader f)]
     (let [id-matcher (re-pattern #"value=\"(\S+)\"")
@@ -141,14 +123,14 @@
                      :start? (start? s)
                      :end? (end? s)
                      :id (matcher id-matcher s)}))
-          reducer (completing (records-reducer "GcRefinerRecipe.xml"))]
+          reducer (completing (records-reducer start?))]
       (filter #(not (nil? (:id %)))
               (transduce xf reducer [{:size 0}] (line-seq rdr))))))
 
 (comment
-  (index-transducer (fn [s] (.contains s "GcRefinerRecipe.xml"))
-                    (fn [s] (= s "    </Property>"))
-                    "resources/nms/recipes-example.xml"))
+  (index (fn [s] (.contains s "GcRefinerRecipe.xml"))
+         (fn [s] (= s "    </Property>"))
+         "resources/nms/recipes-example.xml"))
   ;; => ({:start 157, :size 1248, :start? true, :end? true, :id "REFINERECIPE_14", :end 1248}
   ;;     {:start 1248, :size 2223, :start? true, :end? true, :id "REFINERECIPE_15", :end 2223})
 

@@ -1,6 +1,7 @@
 (ns net.fiendishplatypus.nms.recipe.parser
   (:require [clojure.data.xml :as xml]
-            [clojure.java.io]))
+            [clojure.java.io]
+            [net.fiendishplatypus.file.index :as index]))
 
 (def ingredient-example
   "     <Property value=\"GcRefinerRecipeElement.xml\">
@@ -130,3 +131,27 @@
   ;;       :cooking false,
   ;;       :result {:id "JELLY", :type "Product", :amount "1"},
   ;;       :ingredients ({:id "LAUNCHSUB", :type "Substance", :amount "30"})}}}
+
+(defn recipe 
+  [xml]
+  (into {} 
+        (map parse-ingredient 
+             (:content (xml/parse-str xml)))))
+;; => #'net.fiendishplatypus.nms.recipe.parser/recipe
+
+
+(comment 
+  (recipe
+   (index/load-record "resources/nms/recipes-example.xml" 
+                      (first
+                       (index/index (fn [s] (.contains s "GcRefinerRecipe.xml"))
+                                    (fn [s] (= s "    </Property>"))
+                                    "resources/nms/recipes-example.xml")))))
+;; => {:id "REFINERECIPE_14",
+;;     :name "RECIPE_OXYGEN",
+;;     :time-to-make "20",
+;;     :cooking false,
+;;     :result {:id "FUEL1", :type "Substance", :amount "1"},
+;;     :ingredients ({:id "OXYGEN", :type "Substance", :amount "1"})}
+
+

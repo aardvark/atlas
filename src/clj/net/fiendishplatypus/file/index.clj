@@ -20,7 +20,7 @@
 (defn- to-records
   [start? end? f]
   (with-open [rdr (clojure.java.io/reader f)]
-    (let [id-matcher (re-pattern #"value=\"(\S+)\"")
+    (let [id-matcher (re-pattern #"name=\"(?:ID|Id)\" value=\"(\S+)\"")
           xf (map (fn [s]
                     {:size (+ 2 (count (.getBytes s)))
                      :start? (start? s)
@@ -36,47 +36,47 @@
   ;;     {:size 57, :start? false, :end? false, :id nil}
   ;;     {:size 33, :start? false, :end? false, :id nil}
   ;;     {:size 27, :start? false, :end? false, :id nil}
-  ;;     {:size 44, :start? true, :end? false, :id "GcRefinerRecipe.xml"}
+  ;;     {:size 44, :start? true, :end? false, :id nil}
   ;;     {:size 54, :start? false, :end? false, :id "REFINERECIPE_14"}
-  ;;     {:size 102, :start? false, :end? false, :id "RECIPE_OXYGEN"}
-  ;;     {:size 49, :start? false, :end? false, :id "20"}
-  ;;     {:size 49, :start? false, :end? false, :id "False"}
-  ;;     {:size 67, :start? false, :end? false, :id "GcRefinerRecipeElement.xml"}
+  ;;     {:size 102, :start? false, :end? false, :id nil}
+  ;;     {:size 49, :start? false, :end? false, :id nil}
+  ;;     {:size 49, :start? false, :end? false, :id nil}
+  ;;     {:size 67, :start? false, :end? false, :id nil}
   ;;     {:size 121, :start? false, :end? false, :id "FUEL1"}
-  ;;     {:size 60, :start? false, :end? false, :id "GcInventoryType.xml"}
-  ;;     {:size 63, :start? false, :end? false, :id "Substance"}
+  ;;     {:size 60, :start? false, :end? false, :id nil}
+  ;;     {:size 63, :start? false, :end? false, :id nil}
   ;;     {:size 21, :start? false, :end? false, :id nil}
-  ;;     {:size 46, :start? false, :end? false, :id "1"}
+  ;;     {:size 46, :start? false, :end? false, :id nil}
   ;;     {:size 19, :start? false, :end? false, :id nil}
   ;;     {:size 37, :start? false, :end? false, :id nil}
-  ;;     {:size 55, :start? false, :end? false, :id "GcRefinerRecipeElement.xml"}
+  ;;     {:size 55, :start? false, :end? false, :id nil}
   ;;     {:size 49, :start? false, :end? false, :id "OXYGEN"}
-  ;;     {:size 62, :start? false, :end? false, :id "GcInventoryType.xml"}
-  ;;     {:size 65, :start? false, :end? false, :id "Substance"}
+  ;;     {:size 62, :start? false, :end? false, :id nil}
+  ;;     {:size 65, :start? false, :end? false, :id nil}
   ;;     {:size 23, :start? false, :end? false, :id nil}
-  ;;     {:size 48, :start? false, :end? false, :id "1"}
+  ;;     {:size 48, :start? false, :end? false, :id nil}
   ;;     {:size 21, :start? false, :end? false, :id nil}
   ;;     {:size 19, :start? false, :end? false, :id nil}
   ;;     {:size 17, :start? false, :end? true, :id nil}
-  ;;     {:size 44, :start? true, :end? false, :id "GcRefinerRecipe.xml"}
+  ;;     {:size 44, :start? true, :end? false, :id nil}
   ;;     {:size 54, :start? false, :end? false, :id "REFINERECIPE_15"}
-  ;;     {:size 58, :start? false, :end? false, :id "RECIPE_LAUNCHFUEL"}
-  ;;     {:size 50, :start? false, :end? false, :id "120"}
-  ;;     {:size 49, :start? false, :end? false, :id "False"}
-  ;;     {:size 67, :start? false, :end? false, :id "GcRefinerRecipeElement.xml"}
+  ;;     {:size 58, :start? false, :end? false, :id nil}
+  ;;     {:size 50, :start? false, :end? false, :id nil}
+  ;;     {:size 49, :start? false, :end? false, :id nil}
+  ;;     {:size 67, :start? false, :end? false, :id nil}
   ;;     {:size 46, :start? false, :end? false, :id "JELLY"}
-  ;;     {:size 60, :start? false, :end? false, :id "GcInventoryType.xml"}
-  ;;     {:size 61, :start? false, :end? false, :id "Product"}
+  ;;     {:size 60, :start? false, :end? false, :id nil}
+  ;;     {:size 61, :start? false, :end? false, :id nil}
   ;;     {:size 21, :start? false, :end? false, :id nil}
-  ;;     {:size 46, :start? false, :end? false, :id "1"}
+  ;;     {:size 46, :start? false, :end? false, :id nil}
   ;;     {:size 19, :start? false, :end? false, :id nil}
   ;;     {:size 37, :start? false, :end? false, :id nil}
-  ;;     {:size 55, :start? false, :end? false, :id "GcRefinerRecipeElement.xml"}
+  ;;     {:size 55, :start? false, :end? false, :id nil}
   ;;     {:size 52, :start? false, :end? false, :id "LAUNCHSUB"}
-  ;;     {:size 62, :start? false, :end? false, :id "GcInventoryType.xml"}
-  ;;     {:size 65, :start? false, :end? false, :id "Substance"}
+  ;;     {:size 62, :start? false, :end? false, :id nil}
+  ;;     {:size 65, :start? false, :end? false, :id nil}
   ;;     {:size 23, :start? false, :end? false, :id nil}
-  ;;     {:size 49, :start? false, :end? false, :id "30"}
+  ;;     {:size 49, :start? false, :end? false, :id nil}
   ;;     {:size 21, :start? false, :end? false, :id nil}
   ;;     {:size 19, :start? false, :end? false, :id nil}
   ;;     {:size 17, :start? false, :end? true, :id nil}
@@ -84,7 +84,7 @@
   ;;     {:size 9, :start? false, :end? false, :id nil}]
 
 
-(defn records-reducer 
+(defn records-reducer
   [id?]
   (fn [xs b]
     (let [a (last xs)]
@@ -115,20 +115,22 @@
 
 
 (defn index
-  [start? end? f]
+  [start-mark end? f]
   (with-open [rdr (clojure.java.io/reader f)]
-    (let [id-matcher (re-pattern #"value=\"(\S+)\"")
+    (let [id-matcher (re-pattern #"name=\"(?:ID|Id)\" value=\"(\S+)\"")
+          start? (fn [s] (.contains s start-mark))
+          id (fn [s] (or (if (start? s) start-mark nil) (matcher id-matcher s)))
           xf (map (fn [s]
                     {:size (+ 2 (count (.getBytes s)))
                      :start? (start? s)
                      :end? (end? s)
-                     :id (matcher id-matcher s)}))
+                     :id (id s)}))
           reducer (completing (records-reducer start?))]
       (filter #(not (nil? (:id %)))
               (transduce xf reducer [{:size 0}] (line-seq rdr))))))
 
 (comment
-  (index (fn [s] (.contains s "GcRefinerRecipe.xml"))
+  (index "GcRefinerRecipe.xml"
          (fn [s] (= s "    </Property>"))
          "resources/nms/recipes-example.xml"))
   ;; => ({:start 157, :size 1248, :start? true, :end? true, :id "REFINERECIPE_14", :end 1248}

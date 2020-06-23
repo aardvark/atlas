@@ -1,7 +1,8 @@
 (ns net.fiendishplatypus.nms.substance.parser
   (:require [clojure.data.xml :as xml]
             [clojure.java.io]
-            [clojure.string]))
+            [clojure.string]
+            [net.fiendishplatypus.file.index :as index]))
 
 
 (def substance
@@ -65,6 +66,11 @@
    :table {"FUEL1" {:ID "FUEL1" :name "UI_FUEL_1_NAME" :name-lower "UI_FUEL_1_NAME_L"}}
    :crafting nil})
 
-
-(with-open [rdr (clojure.java.io/reader "resources/nms/recipes-example.xml")]
- (bytes rdr)) 
+(comment
+  (parse-substance
+   (xml/parse-str
+    (index/load-record "resources/nms/substance-example.xml"
+                       (second
+                        (index/index "GcRealitySubstanceData.xml"
+                                     (fn [s] (= s "    </Property>"))
+                                     "resources/nms/substance-example.xml"))))))

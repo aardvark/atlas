@@ -78,13 +78,13 @@
       (String. (.array buffer)))))
 
 
-(defn search-for 
+(defn search-for
   "Collect strings for enrichment"
   [entity-map keys-to-collect]
 
   (let [to-enrich entity-map
-        f (fn [entry] (-> entry 
-                          (second) 
+        f (fn [entry] (-> entry
+                          (second)
                           (select-keys keys-to-collect)
                           (vals)))
         xf (mapcat f)]
@@ -97,14 +97,72 @@
   ;;              "ASTEROID3" {:name "UI_ASTEROID3_NAME", :id "ASTEROID3", :namelower "UI_ASTEROID3_NAME_L"}}
   ;;       dict {"UI_STANDING_WAR" "VY'KEEN"
   ;;             "UI_ASTEROID3_NAME" "Translated"}]
-  (map (fn [e] 
+  (map (fn [e]
          {(first e) (assoc (second e)
                            :name (get dict (:name (second e)))
                            :namelower (get dict (:namelower (second e))))})
        input))
 
 
+(def substance-input-example
+  {"WAR_STANDING_UP" {:name      "UI_STANDING_WAR"
+                      :id        "WAR_STANDING_UP"
+                      :namelower "UI_STANDING_WAR"}
+   "ASTEROID3"       {:name      "UI_ASTEROID3_NAME"
+                      :id        "ASTEROID3"
+                      :namelower "UI_ASTEROID3_NAME_L"}})
+
+(def lang-files
+  (list
+   "NMS_LOC6_ENGLISH.EXML"
+   "NMS_LOC5_ENGLISH.EXML"
+   "NMS_LOC4_ENGLISH.EXML"
+   "NMS_LOC1_ENGLISH.EXML"
+   "NMS_UPDATE3_ENGLISH.EXML"))
+
 ;; dictionary prototype
+(defn make-dictionary
+  "Prepare dictionary for translation `input`"
+  [input files]
+  (let [search-for (search-for input [:name :namelower])] ;;our initial search query
+    (loop [acc {}
+           search-for search-for
+           files files]
+      (if (or (nil? (first files)) (empty? search-for))
+        acc
+        (let [dict
+              (let [file       (str "D:\\NMSProjects\\Notepad\\LANGUAGE\\" (first files))
+                    start-mark (:start-mark language/index-meta)
+                    start?     (fn [s] (clojure.string/includes? s start-mark))
+                    end?       (:end? language/index-meta)
+                    id-matcher (re-pattern #"name=\"(?:ID|Id)\" value=\"(\S+)\"")
+                    id         (fn [s] (or (if (start? s) start-mark nil) (matcher id-matcher s)))
+                    xf         (map (fn [s]
+                                      {:size   (+ 2 (count (.getBytes s "UTF-8")))
+                                       :start? (start? s)
+                                       :end?   (end? s)
+                                       :id     (id s)}))
+                    red        (completing (partial reducer start?))]
+                (with-open [rdr (clojure.java.io/reader file)]
+                  (let [records (sort-by (fn [a] (:start a)) <
+                                         (filter #(not (nil? (:id %)))
+                                                 (transduce xf red '({:size 0}) (line-seq rdr))))
+                        lang    (map
+                                 (fn [record] (language/language
+                                               (load-record file record)
+                                               (:id record)))
+                                 records)
+                        dict    (into {} (filter (fn [x] (search-for (first (first  x)))))
+                                      lang)]
+                    dict)))
+              search-for (apply disj search-for (keys dict))
+              files (rest files)]
+         (recur (merge acc dict) search-for files))))))
+
+(comment (make-dictionary substance-input-example
+                          ["NMS_LOC4_ENGLISH.EXML" "NMS_LOC5_ENGLISH.EXML" "NMS_LOC6_ENGLISH.EXML"]))
+;; => {"UI_ASTEROID3_NAME" "PLATINUM", "UI_ASTEROID3_NAME_L" "Platinum", "UI_STANDING_WAR" "VY'KEEN"}
+
 (comment
   (time
    (let [input        {"WAR_STANDING_UP" {:name      "UI_STANDING_WAR"
@@ -121,10 +179,10 @@
          id-matcher (re-pattern #"name=\"(?:ID|Id)\" value=\"(\S+)\"")
          id         (fn [s] (or (if (start? s) start-mark nil) (matcher id-matcher s)))
          xf         (map (fn [s]
-                             {:size   (+ 2 (count (.getBytes s "UTF-8")))
-                              :start? (start? s)
-                              :end?   (end? s)
-                              :id     (id s)}))
+                           {:size   (+ 2 (count (.getBytes s "UTF-8")))
+                            :start? (start? s)
+                            :end?   (end? s)
+                            :id     (id s)}))
          red        (completing (partial reducer start?))]
      (with-open [rdr (clojure.java.io/reader file)]
        (let [records    (sort-by (fn [a] (:start a)) <
@@ -135,9 +193,9 @@
                                        (load-record file record)
                                        (:id record)))
                          records)
-             dict       (into {} (filter (fn [x] (search-for (first (first  x))))) 
+             dict       (into {} (filter (fn [x] (search-for (first (first  x)))))
                               lang)]
-          dict)))))
+         dict)))))
 
 
 (comment

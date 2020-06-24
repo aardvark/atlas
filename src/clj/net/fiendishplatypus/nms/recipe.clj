@@ -1,4 +1,4 @@
-(ns net.fiendishplatypus.nms.recipe.parser
+(ns net.fiendishplatypus.nms.recipe
   (:require [clojure.data.xml :as xml]
             [clojure.java.io]
             [net.fiendishplatypus.file.index :as index]))

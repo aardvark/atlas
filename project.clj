@@ -22,7 +22,8 @@
                  [venantius/accountant "0.2.5"
                   :exclusions [org.clojure/tools.reader]]
                  [cljs-ajax "0.8.0"]
-                 [org.clojure/data.xml "0.0.8"]]
+                 [org.clojure/data.xml "0.0.8"]
+                 [com.github.kyleburton/clj-xpath "1.4.11"]]
 
   :plugins [[lein-environ "1.1.0"]
             [lein-cljsbuild "1.1.7"]

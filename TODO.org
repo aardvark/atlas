@@ -1,0 +1,3 @@
+* TODO Create dictionary function
+* TODO Dictionary should search all language files
+* TODO Dictionary should persist between runs

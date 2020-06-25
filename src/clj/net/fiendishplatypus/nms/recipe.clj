@@ -155,3 +155,23 @@
 ;;     :ingredients ({:id "OXYGEN", :type "Substance", :amount "1"})}
 
 
+(def index-meta {:start-mark "GcRefinerRecipe.xml"
+                 :end? (fn [s] (= s "    </Property>"))
+                 :file "D:\\NMSProjects\\Notepad\\METADATA\\REALITY\\TABLES\\NMS_REALITY_GCRECIPETABLE.EXML"})
+
+
+(defn index
+  [indexer]
+  (indexer (:start-mark index-meta)
+           (:end? index-meta)
+           (:file index-meta)))
+
+
+(defn from-file
+  [indexer loader]
+  (into {}
+        (map (fn [record]
+               (let [entity (recipe (loader (:file index-meta) record))]
+                 {(:id entity) entity}))
+             (index indexer))))
+             

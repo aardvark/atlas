@@ -2,8 +2,6 @@
   (:require [clojure.data.xml :as xml]
             [clojure.java.io]
             [clojure.string]))
-            
-            
 
 
 (defn parse-substance 
@@ -61,21 +59,23 @@
 
 
 (def index-meta {:start-mark "GcRealitySubstanceData.xml"
-                 :end? (fn [s] (= s "    </Property>"))})
+                 :end? (fn [s] (= s "    </Property>"))
+                 :file "D:\\NMSProjects\\Notepad\\METADATA\\REALITY\\TABLES\\NMS_REALITY_GCSUBSTANCETABLE.EXML"})
 
-(defn substanse-index
-  [indexer file]
-  (indexer (:start-mark index-meta) (:end? index-meta) file))
-  
 
-(defn file->substance 
-  [file]
-  (let [index (substanse-indexer file)]
+(defn index
+  [indexer]
+  (indexer (:start-mark index-meta) 
+           (:end? index-meta) 
+           (:file index-meta)))
+
+
+(defn from-file
+  [indexer loader]
+  (let [index (index indexer)]
     (into {}
           (map 
-           (fn [entry] (parse-substance 
-                        (xml/parse-str 
-                         (index/load-record file entry))))
+           (fn [entry] (substance (loader (:file index-meta) entry)))
            index))))
 
 
@@ -155,4 +155,6 @@
   ;;     "EGUILD_STAND_UP" {:name "UI_STANDING_G_EXP", :id "EGUILD_STAND_UP", :namelower "UI_STANDING_G_EXP"},
   ;;     "GAS1" {:name "UI_GAS_1_NAME", :id "GAS1", :namelower "UI_GAS_1_NAME_L"},
   ;;     "COLD1" {:name "UI_COLD1_NAME", :id "COLD1", :namelower "UI_COLD1_NAME_L"}}
+
+
 

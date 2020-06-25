@@ -83,11 +83,12 @@
 (defn translate
   [dict input keys-to-tranlate]
   (let [lookup-key (fn [m k] {k (get dict (get m k))})]
-    (map (fn [e]
-           {(first e) (apply merge
-                             (second e)
-                             (map (partial lookup-key (second e)) keys-to-tranlate))})
-         input)))
+    (into {}
+          (map (fn [e]
+                 {(first e) (apply merge
+                                   (second e)
+                                   (map (partial lookup-key (second e)) keys-to-tranlate))})
+               input))))
 
 
 (def substance-input-example
@@ -543,21 +544,70 @@
   ;;     "UI_PLANTSUB_TOXIC_NAME_L" "Fungal Mould"}
 
 
+
+;; linking substance with recipe
 (comment
   (time
-   (translate @dictionary-cache (recipe/from-file index load-record) [:name])))
-  ;; => ({"RECIPE_1"
-  ;;      {:id "RECIPE_1",
-  ;;       :name "Processor Setting: Fermentation",
-  ;;       :time-to-make "5",
-  ;;       :cooking true,
-  ;;       :result {:id "FOOD_P_POOP", :type "Product", :amount "1"},
-  ;;       :ingredients ({:id "FOOD_P_POOP", :type "Product", :amount "1"})}}
-  ;;     {"RECIPE_2"
-  ;;      {:id "RECIPE_2",
-  ;;       :name "Processor Setting: Chromatic Yolk Formation",
-  ;;       :time-to-make "5",
-  ;;       :cooking true,
-  ;;       :result {:id "FOOD_P_STELLAR", :type "Product", :amount "1"},
-  ;;       :ingredients ({:id "STELLAR2", :type "Substance", :amount "1"})}})
+   (get (translate @dictionary-cache (recipe/from-file index load-record) [:name])
+        "RECIPE_2")))
+  ;; => {:id "RECIPE_2",
+  ;;     :name "Processor Setting: Chromatic Yolk Formation",
+  ;;     :time-to-make "5",
+  ;;     :cooking true,
+  ;;     :result {:id "FOOD_P_STELLAR", :type "Product", :amount "1"},
+  ;;     :ingredients ({:id "STELLAR2", :type "Substance", :amount "1"})}
 
+(defn recipe->substance-link
+ [recipe]
+ (let [{:keys [id result ingredients]} recipe]
+   (into {}      
+         [{(:id result) {:as-result [id]}}
+          (into {} (map (fn [m] {(:id m) {:as-ingredient [id]}}) ingredients))])))
+
+(comment
+  (time
+   (recipe->substance-link
+    (get (translate @dictionary-cache (recipe/from-file index load-record) [:name])
+         "RECIPE_2"))))
+  ;; => {"FOOD_P_STELLAR" {:as-result ["RECIPE_2"]}, "STELLAR2" {:as-ingredient ["RECIPE_2"]}}
+
+(defn substance-recipes-table
+  [recipes]
+  (apply merge-with (fn [a b] 
+                      {:as-result (concat (:as-result a) (:as-result b))
+                       :as-ingredient (concat (:as-ingredient a) (:as-ingredient b))})
+         (map recipe->substance-link recipes)))
+         
+
+(comment 
+ (substance-recipes-table
+  [{:id "RECIPE_2"
+    :result {:id "FOOD_P_STELLAR", :type "Product", :amount "1"}
+    :ingredients '({:id "STELLAR2", :type "Substance", :amount "1"})}
+   {:id "RECIPE_3"
+    :result {:id "FOOD_P_STELLAR", :type "Product", :amount "1"}
+    :ingredients '({:id "STELLAR2", :type "Substance", :amount "1"})}]))
+;; => {"FOOD_P_STELLAR" {:as-result ("RECIPE_2" "RECIPE_3"), :as-ingredient ()},
+;;     "STELLAR2" {:as-result (), :as-ingredient ("RECIPE_2" "RECIPE_3")}}
+
+(defn add-recipes-to-substance
+  [substance lookup-table]
+  (merge substance (get lookup-table (:id substance))))
+
+(comment
+  (add-recipes-to-substance
+   {:name "CHROMATIC METAL", :id "STELLAR2", :namelower "Chromatic Metal"}
+   {"FOOD_P_STELLAR" {:as-result '("RECIPE_2" "RECIPE_3"), :as-ingredient ()},
+    "STELLAR2" {:as-result (), :as-ingredient '("RECIPE_2" "RECIPE_3")}}))
+  ;; => {:name "CHROMATIC METAL",
+  ;;     :id "STELLAR2",
+  ;;     :namelower "Chromatic Metal",
+  ;;     :as-result (),
+  ;;     :as-ingredient ("RECIPE_2" "RECIPE_3")}
+
+   
+(comment 
+  (get (translate @dictionary-cache (substance/from-file index load-record) [:name :namelower])
+       "STELLAR2"))
+;; => {:name "CHROMATIC METAL", :id "STELLAR2", :namelower "Chromatic Metal"}
+;; 

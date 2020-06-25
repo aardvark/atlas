@@ -30,15 +30,15 @@
   (into [:div.recipes "Recipes:"]
         (for [recipe recipes]
           [:div.recipe (str (:name recipe) " "
-                            (:ratio recipe) " " 
-                            (:time-per-stack recipe))])))
+                            (reduce (fn [a b] (str a (if (= a "") "" " + ") (:name b) "(" (:amount b) ")")) "" (:ingredients recipe)) " = " 
+                            (:amount (:result recipe)))])))
   
 
 (defn app-info-component []
   [:<>
-    [:div (:info @selected-app)]
+    [:div (:name @selected-app)]
     [:div "Stack size: " (:stack @selected-app)]
-    [recipe-component (:recipes @selected-app)]])
+    [recipe-component (:as-result @selected-app)]])
      
      
 
@@ -46,7 +46,7 @@
 (defn item-component [app]
   [:div.app
    {:on-click #(reset! selected-app app)}
-   [:span.appname (:name app)]])
+   [:span.appname (:namelower app)]])
 
 
 (def apps (atom nil))

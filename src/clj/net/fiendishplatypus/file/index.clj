@@ -611,3 +611,292 @@
        "STELLAR2"))
 ;; => {:name "CHROMATIC METAL", :id "STELLAR2", :namelower "Chromatic Metal"}
 ;; 
+
+
+(defn load-test-substance 
+  []
+  (let [substance                         {:name      "CHROMATIC METAL"
+                                           :id        "STELLAR2"
+                                           :namelower "Chromatic Metal"}
+        substance-dictionary              (make-dictionary (search-for (substance/from-file index load-record) [:name :namelower]) lang-files)
+        recipe-dictionary                 (make-dictionary (search-for (recipe/from-file index load-record) [:name]) lang-files)
+        substances                        (translate @dictionary-cache (substance/from-file index load-record) [:name :namelower])
+        recipes                           (translate @dictionary-cache (recipe/from-file index load-record) [:name])
+        substance-recipes-table           (substance-recipes-table (vals recipes))
+        substance-with-recipe-ids         (add-recipes-to-substance substance substance-recipes-table)
+        {:keys [as-ingredient as-result]} substance-with-recipe-ids
+        
+        recipe-with-substance-name        (fn [recipe]
+                                            (let [{:keys [result ingredients]} recipe
+                                                  id                           (:id result)
+                                                  name                         (:namelower (get substances id))
+                                                  result-with-name             (assoc result :name name)
+                                                  ingredient-transform         (fn [ingredient]
+                                                                                 (assoc ingredient :name (:namelower (get substances (:id ingredient)))))
+                                                  ingredients-with-name        (map ingredient-transform ingredients)]
+                                              
+                                              (assoc recipe :result result-with-name
+                                                     :ingredients ingredients-with-name)))
+        
+        lookup-recipes                    (fn [recipe-list] (map recipe-with-substance-name
+                                                                 (vals (select-keys recipes recipe-list))))]
+    
+    (assoc substance-with-recipe-ids 
+           :as-ingredient (lookup-recipes as-ingredient)
+           :as-result (lookup-recipes as-result))))
+(comment 
+  (load-test-substance))
+  ;; => {:name "CHROMATIC METAL",
+  ;;     :id "STELLAR2",
+  ;;     :namelower "Chromatic Metal",
+  ;;     :as-result
+  ;;     ({:id "REFINERECIPE_178",
+  ;;       :name "Requested Operation: Chromatic Metal Fusion",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "2", :name "Chromatic Metal"},
+  ;;       :ingredients
+  ;;       ({:id "EX_YELLOW", :type "Substance", :amount "1", :name "Activated Copper"}
+  ;;        {:id "LAND2", :type "Substance", :amount "1", :name "Pure Ferrite"})}
+  ;;      {:id "REFINERECIPE_36",
+  ;;       :name "Requested Operation: Extract Chromatic Material",
+  ;;       :time-to-make "50",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "2", :name "Chromatic Metal"},
+  ;;       :ingredients ({:id "EX_RED", :type "Substance", :amount "1", :name "Activated Cadmium"})}
+  ;;      {:id "REFINERECIPE_37",
+  ;;       :name "Requested Operation: Extract Chromatic Material",
+  ;;       :time-to-make "30",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "4", :name "Chromatic Metal"},
+  ;;       :ingredients ({:id "EX_BLUE", :type "Substance", :amount "1", :name "Activated Indium"})}
+  ;;      {:id "REFINERECIPE_33",
+  ;;       :name "Requested Operation: Extract Chromatic Material",
+  ;;       :time-to-make "25",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "4", :name "Chromatic Metal"},
+  ;;       :ingredients ({:id "BLUE2", :type "Substance", :amount "2", :name "Indium"})}
+  ;;      {:id "REFINERECIPE_168",
+  ;;       :name "Requested Operation: Chromatic Metal Fusion",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "3", :name "Chromatic Metal"},
+  ;;       :ingredients
+  ;;       ({:id "GREEN2", :type "Substance", :amount "1", :name "Emeril"}
+  ;;        {:id "LAND2", :type "Substance", :amount "1", :name "Pure Ferrite"})}
+  ;;      {:id "REFINERECIPE_169",
+  ;;       :name "Requested Operation: Chromatic Metal Fusion",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "1", :name "Chromatic Metal"},
+  ;;       :ingredients
+  ;;       ({:id "YELLOW2", :type "Substance", :amount "1", :name "Copper"}
+  ;;        {:id "LAND2", :type "Substance", :amount "1", :name "Pure Ferrite"})}
+  ;;      {:id "REFINERECIPE_170",
+  ;;       :name "Requested Operation: Chromatic Metal Fusion",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "4", :name "Chromatic Metal"},
+  ;;       :ingredients
+  ;;       ({:id "BLUE2", :type "Substance", :amount "1", :name "Indium"}
+  ;;        {:id "LAND2", :type "Substance", :amount "1", :name "Pure Ferrite"})}
+  ;;      {:id "REFINERECIPE_32",
+  ;;       :name "Requested Operation: Extract Chromatic Material",
+  ;;       :time-to-make "70",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "1", :name "Chromatic Metal"},
+  ;;       :ingredients ({:id "RED2", :type "Substance", :amount "1", :name "Cadmium"})}
+  ;;      {:id "REFINERECIPE_167",
+  ;;       :name "Requested Operation: Chromatic Metal Fusion",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "2", :name "Chromatic Metal"},
+  ;;       :ingredients
+  ;;       ({:id "RED2", :type "Substance", :amount "1", :name "Cadmium"}
+  ;;        {:id "LAND2", :type "Substance", :amount "1", :name "Pure Ferrite"})}
+  ;;      {:id "REFINERECIPE_35",
+  ;;       :name "Requested Operation: Extract Chromatic Material",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "1", :name "Chromatic Metal"},
+  ;;       :ingredients ({:id "YELLOW2", :type "Substance", :amount "2", :name "Copper"})}
+  ;;      {:id "REFINERECIPE_244",
+  ;;       :name "Requested Operation: Chromatic Stellar Fusion",
+  ;;       :time-to-make "1200",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "5", :name "Chromatic Metal"},
+  ;;       :ingredients
+  ;;       ({:id "ASTEROID1", :type "Substance", :amount "1", :name "Silver"}
+  ;;        {:id "ASTEROID2", :type "Substance", :amount "1", :name "Gold"}
+  ;;        {:id "YELLOW2", :type "Substance", :amount "1", :name "Copper"})}
+  ;;      {:id "REFINERECIPE_34",
+  ;;       :name "Requested Operation: Extract Chromatic Material",
+  ;;       :time-to-make "40",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "3", :name "Chromatic Metal"},
+  ;;       :ingredients ({:id "GREEN2", :type "Substance", :amount "2", :name "Emeril"})}
+  ;;      {:id "REFINERECIPE_247",
+  ;;       :name "Requested Operation: Chromatic Stellar Fusion",
+  ;;       :time-to-make "1200",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "30", :name "Chromatic Metal"},
+  ;;       :ingredients
+  ;;       ({:id "ASTEROID1", :type "Substance", :amount "1", :name "Silver"}
+  ;;        {:id "ASTEROID2", :type "Substance", :amount "1", :name "Gold"}
+  ;;        {:id "BLUE2", :type "Substance", :amount "1", :name "Indium"})}
+  ;;      {:id "REFINERECIPE_177",
+  ;;       :name "Requested Operation: Chromatic Metal Fusion",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "6", :name "Chromatic Metal"},
+  ;;       :ingredients
+  ;;       ({:id "EX_GREEN", :type "Substance", :amount "1", :name "Activated Emeril"}
+  ;;        {:id "LAND2", :type "Substance", :amount "1", :name "Pure Ferrite"})}
+  ;;      {:id "REFINERECIPE_246",
+  ;;       :name "Requested Operation: Chromatic Stellar Fusion",
+  ;;       :time-to-make "1200",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "20", :name "Chromatic Metal"},
+  ;;       :ingredients
+  ;;       ({:id "ASTEROID1", :type "Substance", :amount "1", :name "Silver"}
+  ;;        {:id "ASTEROID2", :type "Substance", :amount "1", :name "Gold"}
+  ;;        {:id "GREEN2", :type "Substance", :amount "1", :name "Emeril"})}
+  ;;      {:id "REFINERECIPE_176",
+  ;;       :name "Requested Operation: Chromatic Metal Fusion",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "8", :name "Chromatic Metal"},
+  ;;       :ingredients
+  ;;       ({:id "EX_BLUE", :type "Substance", :amount "1", :name "Activated Indium"}
+  ;;        {:id "LAND2", :type "Substance", :amount "1", :name "Pure Ferrite"})}
+  ;;      {:id "REFINERECIPE_245",
+  ;;       :name "Requested Operation: Chromatic Stellar Fusion",
+  ;;       :time-to-make "1200",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "10", :name "Chromatic Metal"},
+  ;;       :ingredients
+  ;;       ({:id "ASTEROID1", :type "Substance", :amount "1", :name "Silver"}
+  ;;        {:id "ASTEROID2", :type "Substance", :amount "1", :name "Gold"}
+  ;;        {:id "RED2", :type "Substance", :amount "1", :name "Cadmium"})}
+  ;;      {:id "REFINERECIPE_38",
+  ;;       :name "Requested Operation: Extract Chromatic Material",
+  ;;       :time-to-make "40",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "3", :name "Chromatic Metal"},
+  ;;       :ingredients ({:id "EX_GREEN", :type "Substance", :amount "1", :name "Activated Emeril"})}
+  ;;      {:id "REFINERECIPE_175",
+  ;;       :name "Requested Operation: Chromatic Metal Fusion",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "4", :name "Chromatic Metal"},
+  ;;       :ingredients
+  ;;       ({:id "EX_RED", :type "Substance", :amount "1", :name "Activated Cadmium"}
+  ;;        {:id "LAND2", :type "Substance", :amount "1", :name "Pure Ferrite"})}
+  ;;      {:id "REFINERECIPE_39",
+  ;;       :name "Requested Operation: Extract Chromatic Material",
+  ;;       :time-to-make "60",
+  ;;       :cooking false,
+  ;;       :result {:id "STELLAR2", :type "Substance", :amount "1", :name "Chromatic Metal"},
+  ;;       :ingredients ({:id "EX_YELLOW", :type "Substance", :amount "1", :name "Activated Copper"})}),
+  ;;     :as-ingredient
+  ;;     ({:id "REFINERECIPE_249",
+  ;;       :name "Requested Operation: Chromatic Alchemy",
+  ;;       :time-to-make "1200",
+  ;;       :cooking false,
+  ;;       :result {:id "ASTEROID3", :type "Substance", :amount "10", :name "Platinum"},
+  ;;       :ingredients
+  ;;       ({:id "LAND1", :type "Substance", :amount "1", :name "Ferrite Dust"}
+  ;;        {:id "OXYGEN", :type "Substance", :amount "1", :name "Oxygen"}
+  ;;        {:id "STELLAR2", :type "Substance", :amount "250", :name "Chromatic Metal"})}
+  ;;      {:id "REFINERECIPE_114",
+  ;;       :name "Requested Operation: Chromatic Expansion",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "RED2", :type "Substance", :amount "2", :name "Cadmium"},
+  ;;       :ingredients
+  ;;       ({:id "RED2", :type "Substance", :amount "1", :name "Cadmium"}
+  ;;        {:id "STELLAR2", :type "Substance", :amount "1", :name "Chromatic Metal"})}
+  ;;      {:id "REFINERECIPE_117",
+  ;;       :name "Requested Operation: Chromatic Expansion",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "YELLOW2", :type "Substance", :amount "2", :name "Copper"},
+  ;;       :ingredients
+  ;;       ({:id "YELLOW2", :type "Substance", :amount "1", :name "Copper"}
+  ;;        {:id "STELLAR2", :type "Substance", :amount "1", :name "Chromatic Metal"})}
+  ;;      {:id "REFINERECIPE_250",
+  ;;       :name "Requested Operation: Antimatter Bypass",
+  ;;       :time-to-make "600",
+  ;;       :cooking false,
+  ;;       :result {:id "HYPERFUEL1", :type "Product", :amount "1", :name nil},
+  ;;       :ingredients
+  ;;       ({:id "FUEL2", :type "Substance", :amount "25", :name "Condensed Carbon"}
+  ;;        {:id "CATALYST1", :type "Substance", :amount "10", :name "Sodium"}
+  ;;        {:id "STELLAR2", :type "Substance", :amount "250", :name "Chromatic Metal"})}
+  ;;      {:id "REFINERECIPE_251",
+  ;;       :name "Requested Operation: Antimatter Bypass",
+  ;;       :time-to-make "600",
+  ;;       :cooking false,
+  ;;       :result {:id "HYPERFUEL1", :type "Product", :amount "1", :name nil},
+  ;;       :ingredients
+  ;;       ({:id "FUEL1", :type "Substance", :amount "50", :name "Carbon"}
+  ;;        {:id "CATALYST2", :type "Substance", :amount "5", :name "Sodium Nitrate"}
+  ;;        {:id "STELLAR2", :type "Substance", :amount "250", :name "Chromatic Metal"})}
+  ;;      {:id "RECIPE_2",
+  ;;       :name "Processor Setting: Chromatic Yolk Formation",
+  ;;       :time-to-make "5",
+  ;;       :cooking true,
+  ;;       :result {:id "FOOD_P_STELLAR", :type "Product", :amount "1", :name nil},
+  ;;       :ingredients ({:id "STELLAR2", :type "Substance", :amount "1", :name "Chromatic Metal"})}
+  ;;      {:id "REFINERECIPE_252",
+  ;;       :name "Requested Operation: Antimatter Bypass",
+  ;;       :time-to-make "600",
+  ;;       :cooking false,
+  ;;       :result {:id "HYPERFUEL1", :type "Product", :amount "1", :name nil},
+  ;;       :ingredients
+  ;;       ({:id "FUEL2", :type "Substance", :amount "25", :name "Condensed Carbon"}
+  ;;        {:id "CATALYST2", :type "Substance", :amount "5", :name "Sodium Nitrate"}
+  ;;        {:id "STELLAR2", :type "Substance", :amount "250", :name "Chromatic Metal"})}
+  ;;      {:id "REFINERECIPE_115",
+  ;;       :name "Requested Operation: Chromatic Expansion",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "BLUE2", :type "Substance", :amount "2", :name "Indium"},
+  ;;       :ingredients
+  ;;       ({:id "BLUE2", :type "Substance", :amount "1", :name "Indium"}
+  ;;        {:id "STELLAR2", :type "Substance", :amount "1", :name "Chromatic Metal"})}
+  ;;      {:id "REFINERECIPE_137",
+  ;;       :name "Requested Operation: Gas Catalysation",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "GAS1", :type "Substance", :amount "1", :name "Sulphurine"},
+  ;;       :ingredients
+  ;;       ({:id "GAS3", :type "Substance", :amount "1", :name "Nitrogen"}
+  ;;        {:id "STELLAR2", :type "Substance", :amount "1", :name "Chromatic Metal"})}
+  ;;      {:id "REFINERECIPE_135",
+  ;;       :name "Requested Operation: Gas Catalysation",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "GAS2", :type "Substance", :amount "1", :name "Radon"},
+  ;;       :ingredients
+  ;;       ({:id "GAS1", :type "Substance", :amount "1", :name "Sulphurine"}
+  ;;        {:id "STELLAR2", :type "Substance", :amount "1", :name "Chromatic Metal"})}
+  ;;      {:id "REFINERECIPE_116",
+  ;;       :name "Requested Operation: Chromatic Expansion",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "GREEN2", :type "Substance", :amount "2", :name "Emeril"},
+  ;;       :ingredients
+  ;;       ({:id "GREEN2", :type "Substance", :amount "1", :name "Emeril"}
+  ;;        {:id "STELLAR2", :type "Substance", :amount "1", :name "Chromatic Metal"})}
+  ;;      {:id "REFINERECIPE_136",
+  ;;       :name "Requested Operation: Gas Catalysation",
+  ;;       :time-to-make "90",
+  ;;       :cooking false,
+  ;;       :result {:id "GAS3", :type "Substance", :amount "1", :name "Nitrogen"},
+  ;;       :ingredients
+  ;;       ({:id "GAS2", :type "Substance", :amount "1", :name "Radon"}
+  ;;        {:id "STELLAR2", :type "Substance", :amount "1", :name "Chromatic Metal"})})}
+
+  
+(clojure.string/join ["A" " + " "B"])

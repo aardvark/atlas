@@ -897,6 +897,3 @@
   ;;       :ingredients
   ;;       ({:id "GAS2", :type "Substance", :amount "1", :name "Radon"}
   ;;        {:id "STELLAR2", :type "Substance", :amount "1", :name "Chromatic Metal"})})}
-
-  
-(clojure.string/join ["A" " + " "B"])

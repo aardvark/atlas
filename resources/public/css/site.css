@@ -1,6 +1,6 @@
 .body-container {
   font-family: 'Helvetica Neue', Verdana, Helvetica, Arial, sans-serif;
-  max-width: 640px;
+  max-width: 95%;
   margin: 0 auto;
   padding-top: 72px;
   -webkit-font-smoothing: antialiased;
@@ -44,7 +44,7 @@ a:hover {
 .applist {
   display: flex;
   flex-flow: column;
-  justify-content: space-around;
+  justify-content: flex-start;
   align-items: stretch;
   border-width: 1px;
   border-style: solid;

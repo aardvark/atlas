@@ -1,3 +1,18 @@
-* TODO Create dictionary function
-* TODO Dictionary should search all language files
-* TODO Dictionary should persist between runs
+Plan for today:
+* TODO Add products parsing
+* TODO Link products to the recipe results
+* TODO Add products to the UI export
+
+Next tasks:
+* TODO Make UI data survive application restart
+* TODO Pugneum don't show anything
+* TODO Activated copper don't show anything
+* TODO UI substances should be in alphabetic order
+* TODO Changing substance should not jump redraw ui
+* TODO Extract files location to props
+* TODO Extract cache logic from dictionary logic
+* TODO Check if filtering records by id will speddup dictionary creation
+
+Future possible tasks:
+* TODO Package as graal
+* TODO Make electron app from this

@@ -26,21 +26,20 @@
 
 (def selected-app (atom ""))
 
-(defn recipe-component [recipes]
-  (into [:div.recipes "Recipes:"]
+(defn recipe-component [recipes section-name]
+  (into [:div.recipes section-name]
         (for [recipe recipes]
-          [:div.recipe (str (:name recipe) " "
-                            (reduce (fn [a b] (str a (if (= a "") "" " + ") (:name b) "(" (:amount b) ")")) "" (:ingredients recipe)) " = " 
-                            (:amount (:result recipe)))])))
+          [:div.recipe [:p (:name recipe)]
+                       (str (reduce (fn [a b] (str a (if (= a "") "" " + ") (:name b) "(" (:amount b) ")")) "" (:ingredients recipe))) " = " 
+                         (:name (:result recipe)) "(" (:amount (:result recipe)) ")"])))
   
 
 (defn app-info-component []
   [:<>
     [:div (:name @selected-app)]
     [:div "Stack size: " (:stack @selected-app)]
-    [recipe-component (:as-result @selected-app)]])
-     
-     
+    [recipe-component (:as-result @selected-app) "Created by: "]
+    [recipe-component (:as-ingredient @selected-app) "Used in: "]])
 
 
 (defn item-component [app]
@@ -55,6 +54,7 @@
   (let [query (fn []
                 (ajax/GET "/atlas/apps"
                   :handler (fn [response]
+                             (println response)
                              (reset! apps (cljs.reader/read-string response)))))]
     (query)
     (fn []

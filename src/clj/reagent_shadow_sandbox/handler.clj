@@ -36,7 +36,9 @@
 
 (defn state-storage
   []
-  [(index/load-test-substance)])
+  ;[(index/load-test-substance)]
+  (into [] (index/substances->ui)))
+  ;(index/substances->ui))
   
 
 (defn apps-handler

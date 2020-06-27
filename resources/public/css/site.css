@@ -42,6 +42,7 @@ a:hover {
   border-style: solid;
 }
 .applist {
+  flex-grow: 1;
   display: flex;
   flex-flow: column;
   justify-content: flex-start;
@@ -64,6 +65,7 @@ a:hover {
   padding: 3px;
 }
 #appinfo {
+  flex-grow: 2;
   border-width: 1px;
   border-style: solid;
   padding: 3px;

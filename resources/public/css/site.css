@@ -49,7 +49,7 @@ a:hover {
   align-items: stretch;
   border-width: 1px;
   border-style: solid;
-  width: 30%;
+  max-width: 15em;
 }
 .app {
   font-weight: bold;
@@ -65,7 +65,7 @@ a:hover {
   padding: 3px;
 }
 #appinfo {
-  flex-grow: 2;
+  flex-grow: 5;
   border-width: 1px;
   border-style: solid;
   padding: 3px;

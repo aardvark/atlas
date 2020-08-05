@@ -14,7 +14,8 @@
 
 (def router
   (reitit/router
-   [["/" :atlas]]))
+   [["/" :atlas]
+    ["/sandbox/atlas/page/mock" :atlas-mock]]))
 
 (defn path-for [route & [params]]
   (if params
@@ -26,12 +27,28 @@
 
 (def selected-app (atom ""))
 
+(defn unwrap-ingredients 
+  [ingredients]
+  (str (reduce 
+        (fn [a b] 
+          (let [amount (:amount b)
+                amount (if (> amount 1) (str amount " of ") "")]
+            (str a (if (= a "") "" " + ") amount (:name b)))) 
+        ""
+        ingredients)))
+
+(defn unwrap-result
+  [result]
+  (str (:name result) "(" (:amount result) ")"))
+
 (defn recipe-component [recipes section-name]
   (into [:div.recipes section-name]
         (for [recipe recipes]
-          [:div.recipe (str (reduce (fn [a b] (str a (if (= a "") "" " + ") (:name b) "(" (:amount b) ")")) "" (:ingredients recipe))) " = " 
-                            (:name (:result recipe)) "(" (:amount (:result recipe)) ")"
-                            " | " (:name recipe)])))
+          [:div.recipe (unwrap-ingredients (:ingredients recipe))
+                       " = " 
+                       (unwrap-result (:result recipe))     
+                       " | " (:name recipe)
+                       [:br] "DEBUG:" [:br] recipe])))
 
 (defn app-info-component []
   [:<>
@@ -71,12 +88,138 @@
       [app-info-component "Not selected"]]]))
 
 
+(defn selected-option 
+  [elementId]
+  (let [el (.getElementById js/document elementId)
+        el-idx (aget el "selectedIndex")
+        selected (aget (aget el "options") el-idx)
+        text (aget selected "text")
+        id (aget selected "id")]
+    {:id id :text text}))
+
+(def substances (atom []))
+
+(defn query-substances
+  []
+  (ajax/GET "/atlas/substances"
+    :handler (fn [response]
+               (reset! substances (cljs.reader/read-string response)))))
+               
+
+(def substance-db (atom {}))
+
+(defn query-substance-db
+  []
+  (ajax/GET "/atlas/substance-db"
+    :handler (fn [response]
+               (reset! substance-db (cljs.reader/read-string response)))))
+
+
+(defn make-substance-options 
+  []
+  (for [s @substances]
+    ^{:key (:id s)} [:option {:id (:id s)} (:namelower s)]))
+
+;; Substance db query
+;; 
+(defn ingredient->row
+  [{name :name amount :amount}]
+  [[:span name] [:span amount]])
+
+(defn recipe->row
+  "Take a recipe map and produce a 'hiccup' row for drawing on ui"
+  [{name :name result :result ingredients :ingredients}]
+  (let [start [[:span name]]]
+    (concat start
+            (mapcat ingredient->row ingredients)
+            (ingredient->row result))))
+
+(defn substance-by-number-of-ingredients
+  [substance]
+  (group-by (fn [m] (count (:ingredients m)))
+            (:as-ingredient (get @substance-db substance))))
+
+(defn substance->ingredient-recipes
+  [substance n]
+  (into []
+        (cons (keyword (str "div.grid-" n))
+              (concat 
+               (case n
+                 1
+                 [[:span>strong "Recipe Name"]
+                  [:span>strong "Ingredient"]
+                  [:span>strong "#"]
+                  [:span>strong "Result"]
+                  [:span>strong "#"]]
+                 2
+                 [[:span>strong "Recipe Name"]
+                  [:span>strong "Ingredient A"]
+                  [:span>strong "#"]
+                  [:span>strong "Ingredient B"]
+                  [:span>strong "#"]
+                  [:span>strong "Result"]
+                  [:span>strong "#"]]
+                 3
+                 [[:span>strong "Recipe Name"]
+                  [:span>strong "Ingredient A"]
+                  [:span>strong "#"]
+                  [:span>strong "Ingredient B"]
+                  [:span>strong "#"]
+                  [:span>strong "Ingredient C"]
+                  [:span>strong "#"]
+                  [:span>strong "Result"]
+                  [:span>strong "#"]])                 
+               
+               (mapcat recipe->row
+                       (get
+                        (substance-by-number-of-ingredients substance)
+                        n))))))
+
+;; new mock page
+
+(defn atlas-mock-page []
+  (let [search-for (atom {:ingredient "Nothing" :product "Nothing"})
+        query query-substances
+        query2 query-substance-db]
+    (query)
+    (query2)
+    (fn []
+      [:div
+       [:h3 "Find recipes"]
+       [:div
+        "By ingredient: "
+        [:select#ingredients-opt {:name "ingredients"}
+         [:option ""]
+         (make-substance-options)]
+        
+        
+        "By product: " 
+        [:select#products-opt {:name "products"}  
+         [:option ""]
+         [:option "Ion Battery"]]]
+       [:button  
+        {:on-click (fn [e]
+                     (reset! search-for {:ingredient (selected-option "ingredients-opt")
+                                         :product (selected-option "products-opt")}))}
+        "Search"]
+       [:div "Found:" @search-for]
+       (substance->ingredient-recipes 
+        (:id (:ingredient @search-for))
+        1)
+       (substance->ingredient-recipes
+        (:id (:ingredient @search-for))
+        2)
+       (substance->ingredient-recipes
+        (:id (:ingredient @search-for))
+        3)])))
+
 ;; -------------------------
 ;; Translate routes -> page components
 
 (defn page-for [route]
   (case route
-    :atlas #'atlas-page))
+    :atlas #'atlas-page
+    :atlas-mock #'atlas-mock-page))
 
 
 ;; -------------------------

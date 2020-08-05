@@ -1,0 +1,54 @@
+    <Property value="TkLocalisationEntry.xml">
+      <Property name="Id" value="EXP_LIFEFORM'S" />
+      <Property name="English" value="VariableSizeString.xml">
+        <Property name="Value" value="lifeform's" />
+      </Property>
+      <Property name="French" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="Italian" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="German" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="Spanish" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="Russian" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="Polish" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="Dutch" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="Portuguese" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="LatinAmericanSpanish" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="BrazilianPortuguese" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="SimplifiedChinese" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="TraditionalChinese" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="TencentChinese" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="Korean" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="Japanese" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+      <Property name="USEnglish" value="VariableSizeString.xml">
+        <Property name="Value" value="" />
+      </Property>
+    </Property>

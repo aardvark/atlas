@@ -10,7 +10,8 @@
            [java.nio ByteBuffer]))
 
 
-(defn- matcher [re s]
+(defn matcher
+  [re s]
   (let [match (re-find re s)]
     (if (coll? match) (second match) nil)))
 
@@ -44,19 +45,21 @@
       (cons x (rest acc))
       (concat x (rest acc)))))
 
+(def id-matcher
+  "Regex to match xml Id or ID attribute values"
+  (re-pattern #"name=\"(?:ID|Id)\" value=\"(.+)\""))
 
 (defn index
   "Create index for file `f` based on records. Expect files encoded in UTF-8"
   [start-mark end? f]
   (with-open [rdr (clojure.java.io/reader f)]
-    (let [id-matcher (re-pattern #"name=\"(?:ID|Id)\" value=\"(\S+)\"")
-          start? (fn [s] (.contains s start-mark))
+    (let [start? (fn [s] (.contains s start-mark))
           id (fn [s] (or (if (start? s) start-mark nil) (matcher id-matcher s)))
           xf (map (fn [s]
-                    {:size (+ 2 (count (.getBytes s "UTF-8")))
+                    {:size   (+ 2 (count (.getBytes s "UTF-8")))
                      :start? (start? s)
-                     :end? (end? s)
-                     :id (id s)}))
+                     :end?   (end? s)
+                     :id     (id s)}))
           reducer (completing (partial reducer start?))
           records (sort-by (fn [a] (:start a)) <
                            (filter #(not (nil? (:id %)))
@@ -112,8 +115,10 @@
 
 (def dictionary-cache
   (atom {}))
+
 (comment
   (reset! dictionary-cache {}))
+
 
 (defn search-for
   "Collect strings for enrichment"
@@ -125,6 +130,8 @@
                           (vals)))
         xf (mapcat f)]
     (into #{} xf to-enrich)))
+
+
 
 ;; dictionary prototype
 (defn make-dictionary
@@ -146,7 +153,6 @@
                     start-mark (:start-mark language/index-meta)
                     start?     (fn [s] (clojure.string/includes? s start-mark))
                     end?       (:end? language/index-meta)
-                    id-matcher (re-pattern #"name=\"(?:ID|Id)\" value=\"(\S+)\"")
                     id         (fn [s] (or (if (start? s) start-mark nil) (matcher id-matcher s)))
                     xf         (map (fn [s]
                                       {:size   (+ 2 (count (.getBytes s "UTF-8")))
@@ -160,9 +166,12 @@
                                          (filter #(not (nil? (:id %)))
                                                  (transduce xf red '({:size 0}) (line-seq rdr))))
                         lang    (map
-                                 (fn [record] (language/language
-                                               (load-record file record)
-                                               (:id record)))
+                                 (fn [record]
+                                   (try
+                                     (language/language
+                                      (load-record file record)
+                                      (:id record))
+                                     (catch Exception e (println "Error on loading file: " file ". Record: " record ". Xml: " (load-record file record)))))
                                  records)
                         ;; here we are filtering full language dictionary for only 
                         ;; keys we are searching for, ideally we may move this step 
@@ -635,9 +644,9 @@
 (defn- preload-dictionary
   []
   (make-dictionary
-    (clojure.set/union (search-for (recipe/from-file index load-record) [:name])
-                       (search-for (substance/from-file index load-record) [:name :namelower])
-                       (search-for (product/from-file index load-record) [:name :namelower]))
+   (clojure.set/union (search-for (recipe/from-file index load-record) [:name])
+                      (search-for (substance/from-file index load-record) [:name :namelower])
+                      (search-for (product/from-file index load-record) [:name :namelower]))
    lang-files)
   nil)
 
@@ -680,7 +689,6 @@
 ;; => #'net.fiendishplatypus.file.index/reset-caches
 (comment (reset-caches))
 
-
 (defn get-substance
   [substance]
   (let [substances                        (substances)
@@ -696,7 +704,7 @@
                                              (case type
                                                "Substance" (get substances id)
                                                "Product" (get products id))))
-                                            
+
 
         recipe-with-substance-name        (fn [recipe]
                                             (let [{:keys [result ingredients]} recipe
@@ -729,11 +737,90 @@
 ;; 
 ;; (sort-by (fn [a] (:name a)) <)
 
+(defn by-key
+  [key]
+  (fn [x] (key x)))
+
 (defn substances->ui
   []
-  (sort-by (fn [x] (:namelower x)) compare
+  (sort-by (by-key :namelower) compare
            (filter (fn [x] (not (and (empty? (:as-ingredient x))
                                      (empty? (:as-result x)))))
                    (map get-substance
-                        (vals (substances))))))
+                        (vals (merge (substances) (products)))))))
 
+;;(spit "resources/public/data.edn" (pr-str (into [] (substances->ui))))
+;;
+;;
+(defn usable-substances
+  []
+  (into []
+        (sort-by (by-key :namelower) compare
+                 (map #(select-keys % [:id :namelower])
+                      (filter (fn [x] (not (and (empty? (:as-ingredient x))
+                                                (empty? (:as-result x)))))
+                              (map get-substance
+                                   (vals (substances))))))))
+
+;;(spit "resources/public/substances.edn" (pr-str (usable-substances)))
+;;
+
+(defn substance-db
+  []
+  (into {} (mapcat (fn [x] {(:id x) x}) (substances->ui))))
+
+;;(spit "resources/public/substance-db.edn" (pr-str (substance-db)))
+
+(defn ingredient->row
+  [{name :name amount :amount}]
+  [[:span name] [:span amount]])
+
+(defn recipe->row
+  "Take a recipe map and produce a 'hiccup' row for drawing on ui"
+  [{name :name result :result ingredients :ingredients}]
+  (let [start [[:span name]]]
+    (concat start
+            (mapcat ingredient->row ingredients)
+            (ingredient->row result))))
+
+(defn substance-by-number-of-ingredients
+  [substance]
+  (group-by (fn [m] (count (:ingredients m)))
+            (:as-ingredient (get-substance substance))))
+
+(defn substance->ingredient-recipes
+  [substance n]
+  (into []
+        (cons :div.grid
+              (concat [[:span>strong "Recipe Name"]
+                       [:span>strong "Ingredient"]
+                       [:span>strong "#"]
+                       [:span>strong "Result"]
+                       [:span>strong "#"]]
+                      
+                      (mapcat recipe->row
+                              (get
+                               (substance-by-number-of-ingredients substance)
+                               n))))))
+
+(get
+ (substance-by-number-of-ingredients {:id "FUEL1"})
+ 2)
+
+
+
+
+
+;; [:div.grid
+;;   [:span] ;;headers
+;;   [:span "data"]]
+
+
+
+(comment
+  (reset! dictionary-cache {})
+  (preload-dictionary)
+  (substances->ui)
+  (substances)
+  (product-dictionary)
+  (substance-dictionary))

@@ -3,6 +3,14 @@
             [clojure.java.io]
             [clj-xpath.core :as xpath]))
 
+(defn xpath-quote-id 
+  [id]
+  (let [s id
+        q "\"'\""]
+    (if (clojure.string/includes? s "'")
+      (clojure.string/replace s "'" q)
+      s)))
+
 
 ;; xml parsing thorugh xpath
 (comment 
@@ -15,17 +23,18 @@
                {id 
                 (:value 
                  (xpath/$x:attrs 
-                  (str "//Property[@value='TkLocalisationEntry.xml']/Property[@name='Id' and @value='" id "']/../Property[@name='English']/Property") xml))})
+                  (str "//Property[@value='TkLocalisationEntry.xml']/Property[@name='Id' and @value='"  id "']/../Property[@name='English']/Property") xml))})
              (map :value (xpath/$x:attrs* "//Property[@value='TkLocalisationEntry.xml']/Property[@name='Id']" xml)))))))
 
 
 (defn language
   [xml id]
   {id (:value 
-       (try 
-         (xpath/$x:attrs 
-          (str "//Property[@value='TkLocalisationEntry.xml']/Property[@name='Id' and @value='" id "']/../Property[@name='English']/Property") xml)
-         (catch Exception e (println (str "Exception on id: " id)))))})
+       (xpath/$x:attrs 
+        (str "//Property[@value='TkLocalisationEntry.xml']/Property[@name='Id' and @value=\""
+             id 
+             "\"]/../Property[@name='English']/Property")
+        xml))})
 
 
 (def index-meta {:start-mark "TkLocalisationEntry.xml"

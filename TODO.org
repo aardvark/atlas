@@ -1,14 +1,11 @@
 Plan for today:
-* TODO Add products parsing
-* TODO Link products to the recipe results
-* TODO Add products to the UI export
+* DONE Add products parsing
+* DONE Link products to the recipe results
+* DONE Add products to the UI export
+* DONE UI substances should be in alphabetic order
 
 Next tasks:
 * TODO Make UI data survive application restart
-* TODO Pugneum don't show anything
-* TODO Activated copper don't show anything
-* TODO UI substances should be in alphabetic order
-* TODO Changing substance should not jump redraw ui
 * TODO Extract files location to props
 * TODO Extract cache logic from dictionary logic
 * TODO Check if filtering records by id will speddup dictionary creation

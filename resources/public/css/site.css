@@ -71,3 +71,48 @@ a:hover {
   padding: 3px;
   background-color: lightgray;
 }
+
+.grid-1 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border-top: 1px solid black;
+  border-right: 1px solid black;
+  margin-bottom: 5px;
+  margin-top: 5px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-top: 1px solid black;
+  border-right: 1px solid black;
+  margin-bottom: 5px;
+  margin-top: 5px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  border-top: 1px solid black;
+  border-right: 1px solid black;
+  margin-bottom: 5px;
+  margin-top: 5px;
+}
+
+.grid-1 > span {
+  padding: 8px 4px;
+  border-left: 1px solid black;
+  border-bottom: 1px solid black;
+}
+
+.grid-2 > span {
+  padding: 8px 4px;
+  border-left: 1px solid black;
+  border-bottom: 1px solid black;
+}
+
+.grid-3 > span {
+  padding: 8px 4px;
+  border-left: 1px solid black;
+  border-bottom: 1px solid black;
+}

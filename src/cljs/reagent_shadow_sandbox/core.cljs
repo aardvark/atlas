@@ -134,10 +134,37 @@
             (mapcat ingredient->row ingredients)
             (ingredient->row result))))
 
+
+(defn with-ingredients-by-id-first
+  [id m]
+  (let [by-id (fn [a] (:id a))
+        id-first (fn [x y] (cond
+                             (= x y id) 0
+                             (= x id) -1
+                             (= y id) 1
+                             :else (compare x y)))
+        sorted-ingredients (sort-by by-id id-first (:ingredients m))]
+    (assoc m :ingredients sorted-ingredients)))
+
 (defn substance-by-number-of-ingredients
   [substance]
-  (group-by (fn [m] (count (:ingredients m)))
-            (:as-ingredient (get @substance-db substance))))
+  (let [group-rule (fn [m] (count (:ingredients m)))
+        recipes (:as-ingredient (get @substance-db substance))
+        id substance
+        sorted-recipes (map (partial with-ingredients-by-id-first id)
+                            recipes)]
+    (println (str recipes))
+    (println (str "Sorted Recipes:"))
+    (println (str sorted-recipes))
+    (group-by group-rule sorted-recipes)))
+
+(let [id "FUEL1"
+      cmp (fn [x y] (cond
+                     (= x y id) 0
+                     (= x id) -1
+                     (= y id) 1
+                     :else (compare x y)))]
+  (sort-by cmp ["FUEL1" "OTHER" "FUEL1" "OTHER" "FUEL1"]))
 
 (defn substance->ingredient-recipes
   [substance n]

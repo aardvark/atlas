@@ -783,10 +783,24 @@
             (mapcat ingredient->row ingredients)
             (ingredient->row result))))
 
+(defn with-ingredints-by-id-first
+  [id m]
+  (let [by-id (fn [a] (:id a))
+        id-first (fn [x y] (if (= x id)
+                             -1
+                             (compare x y)))
+        sorted-ingredients (sort-by by-id id-first (:ingredients m))]
+    (assoc m :ingredients sorted-ingredients)))
+
 (defn substance-by-number-of-ingredients
   [substance]
-  (group-by (fn [m] (count (:ingredients m)))
-            (:as-ingredient (get-substance substance))))
+  (let [group-rule (fn [m] (count (:ingredients m)))
+        recipes (:as-ingredient (get-substance substance))
+        id (:id substance)
+        recipes (map (partial with-ingredints-by-id-first id)
+                     recipes)]
+    (group-by group-rule recipes)))
+             
 
 (defn substance->ingredient-recipes
   [substance n]
@@ -797,18 +811,21 @@
                        [:span>strong "#"]
                        [:span>strong "Result"]
                        [:span>strong "#"]]
-                      
+
                       (mapcat recipe->row
                               (get
                                (substance-by-number-of-ingredients substance)
                                n))))))
 
-(get
- (substance-by-number-of-ingredients {:id "FUEL1"})
- 2)
+(comment
+  (get
+   (substance-by-number-of-ingredients {:id "FUEL1"})
+   2))
 
 
 
+(map (partial with-ingredints-by-id-first "FUEL1")
+     (:as-ingredient (get-substance {:id "FUEL1"})))
 
 
 ;; [:div.grid

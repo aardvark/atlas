@@ -27,13 +27,13 @@
 
 (def selected-app (atom ""))
 
-(defn unwrap-ingredients 
+(defn unwrap-ingredients
   [ingredients]
-  (str (reduce 
-        (fn [a b] 
+  (str (reduce
+        (fn [a b]
           (let [amount (:amount b)
                 amount (if (> amount 1) (str amount " of ") "")]
-            (str a (if (= a "") "" " + ") amount (:name b)))) 
+            (str a (if (= a "") "" " + ") amount (:name b))))
         ""
         ingredients)))
 
@@ -45,16 +45,16 @@
   (into [:div.recipes section-name]
         (for [recipe recipes]
           [:div.recipe (unwrap-ingredients (:ingredients recipe))
-                       " = " 
-                       (unwrap-result (:result recipe))     
-                       " | " (:name recipe)
-                       [:br] "DEBUG:" [:br] recipe])))
+           " = "
+           (unwrap-result (:result recipe))
+           " | " (:name recipe)
+           [:br] "DEBUG:" [:br] recipe])))
 
 (defn app-info-component []
   [:<>
-    [:div (:name @selected-app)]
-    [recipe-component (:as-result @selected-app) "Created by: "]
-    [recipe-component (:as-ingredient @selected-app) "Used in: "]])
+   [:div (:name @selected-app)]
+   [recipe-component (:as-result @selected-app) "Created by: "]
+   [recipe-component (:as-ingredient @selected-app) "Used in: "]])
 
 
 (defn item-component [app]
@@ -71,7 +71,7 @@
                   :handler (fn [response]
                              (println response)
                              (reset! apps (cljs.reader/read-string response))
-                             (reset! selected-app (first @apps)))))]  
+                             (reset! selected-app (first @apps)))))]
     (query)
     (fn []
       (into [:div.applist]
@@ -88,7 +88,7 @@
       [app-info-component "Not selected"]]]))
 
 
-(defn selected-option 
+(defn selected-option
   [elementId]
   (let [el (.getElementById js/document elementId)
         el-idx (aget el "selectedIndex")
@@ -97,6 +97,12 @@
         id (aget selected "id")]
     {:id id :text text}))
 
+(defn checkbox-value
+  [elementId]
+  (let [el (.getElementById js/document elementId)
+        v (aget el "checked")]
+    v))
+
 (def substances (atom []))
 
 (defn query-substances
@@ -104,7 +110,7 @@
   (ajax/GET "/atlas/substances"
     :handler (fn [response]
                (reset! substances (cljs.reader/read-string response)))))
-               
+
 
 (def substance-db (atom {}))
 
@@ -115,7 +121,7 @@
                (reset! substance-db (cljs.reader/read-string response)))))
 
 
-(defn make-substance-options 
+(defn make-substance-options
   []
   (for [s @substances]
     ^{:key (:id s)} [:option {:id (:id s)} (:namelower s)]))
@@ -137,25 +143,28 @@
 
 (defn with-ingredients-by-id-first
   [id m]
-  (let [by-id (fn [a] (:id a))
-        id-first (fn [x y] (cond
-                             (= x y id) 0
-                             (= x id) -1
-                             (= y id) 1
-                             :else (compare x y)))
-        sorted-ingredients (sort-by by-id id-first (:ingredients m))]
+  (let [key (fn [a] [(:id a) (:amount a)])
+        id-first (fn [[x xx] [y yy]]
+                   (cond
+                     (= x y id) (compare xx yy)
+                     (= x id) -1
+                     (= y id) 1
+                     :else (compare x y)))
+        sorted-ingredients (sort-by key id-first (:ingredients m))]
     (assoc m :ingredients sorted-ingredients)))
 
 (defn substance-by-number-of-ingredients
   [substance]
-  (let [id substance
+  (let [id (:id substance)
+        cooking? (:cooking substance)
         group-rule (fn [m] (count (:ingredients m)))
         recipes (:as-ingredient (get @substance-db id))
+        recipes (filter #(if cooking? true (= (:cooking %) false)) recipes)
         sorted-recipes (map (partial with-ingredients-by-id-first id)
-                            recipes)]
-    (println (str recipes))
-    (println (str "Sorted Recipes:"))
-    (println (str sorted-recipes))
+                            recipes)
+        sorted-recipes (sort-by (fn [x] (:amount (first (:ingredients x))))
+                                compare
+                                sorted-recipes)]
     (group-by group-rule sorted-recipes)))
 
 
@@ -163,7 +172,7 @@
   [substance n]
   (into []
         (cons (keyword (str "div.grid-" n))
-              (concat 
+              (concat
                (case n
                  1
                  [[:span>strong "Recipe Name"]
@@ -188,8 +197,8 @@
                   [:span>strong "Ingredient C"]
                   [:span>strong "#"]
                   [:span>strong "Result"]
-                  [:span>strong "#"]])                 
-               
+                  [:span>strong "#"]])
+
                (mapcat recipe->row
                        (get
                         (substance-by-number-of-ingredients substance)
@@ -211,26 +220,29 @@
         [:select#ingredients-opt {:name "ingredients"}
          [:option ""]
          (make-substance-options)]
-        
-        
-        "By product: " 
-        [:select#products-opt {:name "products"}  
+
+
+        "By product: "
+        [:select#products-opt {:name "products"}
          [:option ""]
-         [:option "Ion Battery"]]]
-       [:button  
+         [:option "Ion Battery"]]
+        "Include cooking: "
+        [:input {:type "checkbox" :id "includeCooking"}]]
+       [:button
         {:on-click (fn [e]
                      (reset! search-for {:ingredient (selected-option "ingredients-opt")
-                                         :product (selected-option "products-opt")}))}
+                                         :product (selected-option "products-opt")
+                                         :cooking (checkbox-value "includeCooking")}))}
         "Search"]
        [:div "Found:" @search-for]
-       (substance->ingredient-recipes 
-        (:id (:ingredient @search-for))
+       (substance->ingredient-recipes
+        {:id (:id (:ingredient @search-for)) :cooking (:cooking @search-for)}
         1)
        (substance->ingredient-recipes
-        (:id (:ingredient @search-for))
+        {:id (:id (:ingredient @search-for)) :cooking (:cooking @search-for)}
         2)
        (substance->ingredient-recipes
-        (:id (:ingredient @search-for))
+        {:id (:id (:ingredient @search-for)) :cooking (:cooking @search-for)}
         3)])))
 
 ;; -------------------------

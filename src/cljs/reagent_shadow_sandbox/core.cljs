@@ -148,9 +148,9 @@
 
 (defn substance-by-number-of-ingredients
   [substance]
-  (let [group-rule (fn [m] (count (:ingredients m)))
-        recipes (:as-ingredient (get @substance-db substance))
-        id substance
+  (let [id substance
+        group-rule (fn [m] (count (:ingredients m)))
+        recipes (:as-ingredient (get @substance-db id))
         sorted-recipes (map (partial with-ingredients-by-id-first id)
                             recipes)]
     (println (str recipes))
@@ -158,13 +158,6 @@
     (println (str sorted-recipes))
     (group-by group-rule sorted-recipes)))
 
-(let [id "FUEL1"
-      cmp (fn [x y] (cond
-                     (= x y id) 0
-                     (= x id) -1
-                     (= y id) 1
-                     :else (compare x y)))]
-  (sort-by cmp ["FUEL1" "OTHER" "FUEL1" "OTHER" "FUEL1"]))
 
 (defn substance->ingredient-recipes
   [substance n]

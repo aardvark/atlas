@@ -87,6 +87,9 @@
      [:div.appinfo-cnt
       [app-info-component "Not selected"]]]))
 
+(defn get-value
+  [elId]
+  (aget (.getElementById js/document elId) "value"))
 
 (defn selected-option
   [elementId]
@@ -123,8 +126,9 @@
 
 (defn make-substance-options
   []
-  (for [s @substances]
-    ^{:key (:id s)} [:option {:id (:id s)} (:namelower s)]))
+  (for [{id :id namelower :namelower} @substances]
+    ^{:key id} [:option {:id id :value namelower} namelower]))
+
 
 ;; Substance db query
 ;; 
@@ -153,23 +157,30 @@
         sorted-ingredients (sort-by key id-first (:ingredients m))]
     (assoc m :ingredients sorted-ingredients)))
 
+
 (defn substance-by-number-of-ingredients
-  [substance]
-  (let [id (:id substance)
-        cooking? (:cooking substance)
-        group-rule (fn [m] (count (:ingredients m)))
+  [query]
+  (let [id (:ingredient @query)
         recipes (:as-ingredient (get @substance-db id))
-        recipes (filter #(if cooking? true (= (:cooking %) false)) recipes)
-        sorted-recipes (map (partial with-ingredients-by-id-first id)
-                            recipes)
+        cooking? (:cooking @query)
+        product (:product @query)
+        xf (comp
+            (filter #(if cooking? true (= (:cooking %) false)))
+            (filter #(if (nil? product) true 
+                         (= product (get-in % [:result :id]))))
+            (map (partial with-ingredients-by-id-first id)))
+        
+        recipes (into [] xf recipes)
+        
         sorted-recipes (sort-by (fn [x] (:amount (first (:ingredients x))))
                                 compare
-                                sorted-recipes)]
-    (group-by group-rule sorted-recipes)))
+                                recipes)
+        number-of-ingredients (fn [m] (count (:ingredients m)))]
+    (group-by number-of-ingredients sorted-recipes)))
 
 
 (defn substance->ingredient-recipes
-  [substance n]
+  [search-for n]
   (into []
         (cons (keyword (str "div.grid-" n))
               (concat
@@ -201,49 +212,71 @@
 
                (mapcat recipe->row
                        (get
-                        (substance-by-number-of-ingredients substance)
+                        (substance-by-number-of-ingredients search-for)
                         n))))))
+
+;; products query 
+;; 
+(def products (atom []))
+
+(defn query-products
+  []
+  (ajax/GET "/atlas/products"
+    :handler (fn [response]
+               (reset! products (cljs.reader/read-string response)))))
+
+(def lookup (atom {}))
+
+(defn query-lookup
+  []
+  (ajax/GET "/atlas/lookup"
+    :handler (fn [response]
+               (reset! lookup (cljs.reader/read-string response)))))
+
+(defn make-products-options
+  []
+  (for [{id :id namelower :namelower} @products]
+    ^{:key id} [:option {:id id} namelower]))
 
 ;; new mock page
 
 (defn atlas-mock-page []
-  (let [search-for (atom {:ingredient "Nothing" :product "Nothing"})
+  (let [search-for (atom {:ingredient "Nothing" :product "Nothing" :cooking false})
         query query-substances
-        query2 query-substance-db]
+        query2 query-substance-db
+        query3 query-products
+        query4 query-lookup]
     (query)
     (query2)
+    (query3)
+    (query4)
     (fn []
       [:div
        [:h3 "Find recipes"]
        [:div
-        "By ingredient: "
-        [:select#ingredients-opt {:name "ingredients"}
-         [:option ""]
+        [:label {:for "ingredients-inp"} "By ingredient:"]
+        [:input#ingredients-inp {:type "text" :list "ingredients-list" :name "ingredients"}]
+        [:datalist#ingredients-list
          (make-substance-options)]
 
+        [:label {:for "products-inp"} "By result:"]
+        [:input#products-inp {:type "text" :list "products-list" :name "products"}]
+        [:datalist#products-list
+         (make-products-options)]
 
-        "By product: "
-        [:select#products-opt {:name "products"}
-         [:option ""]
-         [:option "Ion Battery"]]
         "Include cooking: "
         [:input {:type "checkbox" :id "includeCooking"}]]
+
        [:button
-        {:on-click (fn [e]
-                     (reset! search-for {:ingredient (selected-option "ingredients-opt")
-                                         :product (selected-option "products-opt")
+        {:on-click (fn [_]
+                     (reset! search-for {:ingredient (get @lookup (get-value "ingredients-inp"))
+                                         :product (get @lookup (get-value "products-inp"))
                                          :cooking (checkbox-value "includeCooking")}))}
         "Search"]
        [:div "Found:" @search-for]
-       (substance->ingredient-recipes
-        {:id (:id (:ingredient @search-for)) :cooking (:cooking @search-for)}
-        1)
-       (substance->ingredient-recipes
-        {:id (:id (:ingredient @search-for)) :cooking (:cooking @search-for)}
-        2)
-       (substance->ingredient-recipes
-        {:id (:id (:ingredient @search-for)) :cooking (:cooking @search-for)}
-        3)])))
+       (substance->ingredient-recipes search-for 1)
+       (substance->ingredient-recipes search-for 2)
+       (substance->ingredient-recipes search-for 3)])))
 
 ;; -------------------------
 ;; Translate routes -> page components

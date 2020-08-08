@@ -751,19 +751,49 @@
 
 ;;(spit "resources/public/data.edn" (pr-str (into [] (substances->ui))))
 ;;
-;;
-(defn usable-substances
-  []
-  (into []
-        (sort-by (by-key :namelower) compare
-                 (map #(select-keys % [:id :namelower])
-                      (filter (fn [x] (not (and (empty? (:as-ingredient x))
-                                                (empty? (:as-result x)))))
-                              (map get-substance
-                                   (vals (substances))))))))
 
+
+(defn list-for-ui
+  [k]
+  (let [filter-key k
+        input (vals (merge (substances) (products)))
+        xf (comp
+            (map get-substance)
+            (filter (fn [x] (seq (get x filter-key))))
+            (map #(select-keys % [:id :namelower])))]
+    (sort-by (by-key :namelower)
+             compare
+             (into [] xf input))))
+
+(defn usable-substances []
+  (list-for-ui :as-ingredient))
+
+
+;;(time (usable-substances))
+;;"Elapsed time: 5677.3168 msecs"
+
+;;(time (usable-substances2))
+;;"Elapsed time: 5396.4526 msecs"
+
+;;TODO: rename to the ingredients
 ;;(spit "resources/public/substances.edn" (pr-str (usable-substances)))
 ;;
+
+(defn usable-products []
+  (list-for-ui :as-result))
+
+;;(spit "resources/public/products.edn" (pr-str (usable-products)))
+
+(defn name->id
+  []
+  (into {} (map (fn [m] {(:namelower m) (:id m)})
+                (concat
+                 (list-for-ui :as-result)
+                 (list-for-ui :as-ingredient)))))
+
+;;(get (name->id) "Wriggling Jam")
+;;
+(spit "resources/public/nameToIdLookup.edn" (pr-str (name->id)))
 
 (defn substance-db
   []
@@ -775,6 +805,7 @@
   [{name :name amount :amount}]
   [[:span name] [:span amount]])
 
+
 (defn recipe->row
   "Take a recipe map and produce a 'hiccup' row for drawing on ui"
   [{name :name result :result ingredients :ingredients}]
@@ -782,6 +813,7 @@
     (concat start
             (mapcat ingredient->row ingredients)
             (ingredient->row result))))
+
 
 (defn with-ingredints-by-id-first
   [id m]
@@ -792,6 +824,7 @@
         sorted-ingredients (sort-by by-id id-first (:ingredients m))]
     (assoc m :ingredients sorted-ingredients)))
 
+
 (defn substance-by-number-of-ingredients
   [substance]
   (let [group-rule (fn [m] (count (:ingredients m)))
@@ -800,7 +833,7 @@
         recipes (map (partial with-ingredints-by-id-first id)
                      recipes)]
     (group-by group-rule recipes)))
-             
+
 
 (defn substance->ingredient-recipes
   [substance n]
@@ -821,17 +854,6 @@
   (get
    (substance-by-number-of-ingredients {:id "FUEL1"})
    2))
-
-
-
-(map (partial with-ingredints-by-id-first "FUEL1")
-     (:as-ingredient (get-substance {:id "FUEL1"})))
-
-
-;; [:div.grid
-;;   [:span] ;;headers
-;;   [:span "data"]]
-
 
 
 (comment

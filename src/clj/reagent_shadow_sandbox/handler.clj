@@ -64,6 +64,7 @@
   []
   (load-edn "resources/public/substance-db.edn"))
 
+
 (defn apps-handler
   [_request]
   {:status 200
@@ -76,11 +77,31 @@
    :headers {"Content-Type" "application/edn"}
    :body (str (substance-storage))})
 
+(defn products-storage
+  []
+  (load-edn "resources/public/substances.edn"))
+
+(defn lookup-storage
+  []
+  (load-edn "resources/public/nameToIdLookup.edn"))
+
+(defn products-handler
+  [_request]
+  {:status 200
+   :headers {"Content-Type" "application/edn"}
+   :body (str (products-storage))})
+
 (defn substance-db-handler
   [_request]
   {:status 200
    :headers {"Content-Type" "application/edn"}
    :body (str (substance-db-storage))})
+
+(defn lookup-handler
+  [_request]
+  {:status 200
+   :headers {"Content-Type" "application/edn"}
+   :body (str (lookup-storage))})
 
 (def app
   (reitit-ring/ring-handler
@@ -88,7 +109,9 @@
     [["/" {:get {:handler index-handler}}]
      ["/atlas/apps" {:get {:handler apps-handler}}]
      ["/atlas/substances" {:get {:handler substances-handler}}]
+     ["/atlas/products" {:get {:handler products-handler}}]
      ["/atlas/substance-db" {:get {:handler substance-db-handler}}]
+     ["/atlas/lookup" {:get {:handler lookup-handler}}]
      ["/sandbox/atlas/page/mock" {:get {:handler index-handler}}]
      ["/items"
       ["" {:get {:handler index-handler}}]

@@ -1,3 +1,5 @@
 # Atlas sandbox
 
-Simple Reagent + Shadow sanbox to test out ideas for atlas like application.
+"No Man Sky" recipe book and file indexer
+
+![Iteration 2 example](site/iteration2.png)

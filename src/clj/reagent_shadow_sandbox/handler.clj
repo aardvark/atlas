@@ -79,7 +79,7 @@
 
 (defn products-storage
   []
-  (load-edn "resources/public/substances.edn"))
+  (load-edn "resources/public/products.edn"))
 
 (defn lookup-storage
   []

@@ -179,41 +179,37 @@
     (group-by number-of-ingredients sorted-recipes)))
 
 
-(defn substance->ingredient-recipes
-  [search-for n]
-  (into []
-        (cons (keyword (str "div.grid-" n))
-              (concat
-               (case n
-                 1
-                 [[:span>strong "Recipe Name"]
-                  [:span>strong "Ingredient"]
-                  [:span>strong "#"]
-                  [:span>strong "Result"]
-                  [:span>strong "#"]]
-                 2
-                 [[:span>strong "Recipe Name"]
-                  [:span>strong "Ingredient A"]
-                  [:span>strong "#"]
-                  [:span>strong "Ingredient B"]
-                  [:span>strong "#"]
-                  [:span>strong "Result"]
-                  [:span>strong "#"]]
-                 3
-                 [[:span>strong "Recipe Name"]
-                  [:span>strong "Ingredient A"]
-                  [:span>strong "#"]
-                  [:span>strong "Ingredient B"]
-                  [:span>strong "#"]
-                  [:span>strong "Ingredient C"]
-                  [:span>strong "#"]
-                  [:span>strong "Result"]
-                  [:span>strong "#"]])
+(defn recipe->row2
+  "Take a recipe map and produce a 'hiccup' row for drawing on ui"
+  [{name :name result :result ingredients :ingredients}]
+  (let [start [[:span name]]
+        n (count ingredients)
+        empty-ingredients (repeat (* (- 3 n) 2) [:span])]
 
-               (mapcat recipe->row
-                       (get
-                        (substance-by-number-of-ingredients search-for)
-                        n))))))
+     (concat start
+              (mapcat ingredient->row ingredients)
+              empty-ingredients
+              (ingredient->row result))))
+
+(defn substance->ingredient-recipes
+  [search-for]
+  (let [recipes (substance-by-number-of-ingredients search-for)]
+    (into []
+          (cons (keyword (str "div.grid-3"))
+                (concat
+                   [[:span>strong "Recipe Name"]
+                    [:span>strong "Ingredient A"]
+                    [:span>strong "#"]
+                    [:span>strong "Ingredient B"]
+                    [:span>strong "#"]
+                    [:span>strong "Ingredient C"]
+                    [:span>strong "#"]
+                    [:span>strong "Result"]
+                    [:span>strong "#"]]
+                 (mapcat recipe->row2
+                         (concat (get recipes 1)
+                                 (get recipes 2)
+                                 (get recipes 3))))))))
 
 ;; products query 
 ;; 
@@ -274,9 +270,7 @@
                                          :cooking (checkbox-value "includeCooking")}))}
         "Search"]
        [:div "Found:" @search-for]
-       (substance->ingredient-recipes search-for 1)
-       (substance->ingredient-recipes search-for 2)
-       (substance->ingredient-recipes search-for 3)])))
+       (substance->ingredient-recipes search-for)])))
 
 ;; -------------------------
 ;; Translate routes -> page components

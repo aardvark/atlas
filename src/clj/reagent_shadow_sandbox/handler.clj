@@ -116,13 +116,8 @@
   (reitit-ring/ring-handler
    (reitit-ring/router
     [["/" {:get {:handler index-handler}}]
-     ["/atlas/apps" {:get {:handler apps-handler}}]
-     ["/atlas/substances" {:get {:handler substances-handler}}]
-     ["/atlas/products" {:get {:handler products-handler}}]
-     ["/atlas/substance-db" {:get {:handler substance-db-handler}}]
-     ["/atlas/lookup" {:get {:handler lookup-handler}}]
+     ["/recipes" {:get {:handler index-handler}}]
      ["/atlas/recipe-db" {:get {:handler recipe-db-handler}}]
-     ["/sandbox/atlas/page/mock" {:get {:handler index-handler}}]
      ["/items"
       ["" {:get {:handler index-handler}}]
       ["/:item-id" {:get {:handler index-handler

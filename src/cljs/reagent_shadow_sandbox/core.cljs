@@ -130,6 +130,8 @@
     ^{:key id} [:option {:id id :value namelower} namelower]))
 
 
+
+
 ;; Substance db query
 ;; 
 (defn ingredient->row
@@ -158,10 +160,20 @@
     (assoc m :ingredients sorted-ingredients)))
 
 
+
+;; data db
+(def recipe-db
+  (atom {:susbtances   {}
+         :substance-db {}
+         :products     {}
+         :lookup       {}}))
+
 (defn substance-by-number-of-ingredients
   [query]
   (let [id (:ingredient @query)
-        recipes (:as-ingredient (get @substance-db id))
+        substance-db (get @recipe-db :substance-db)
+        substance (get substance-db id)
+        recipes (:as-ingredient substance)
         cooking? (:cooking @query)
         product (:product @query)
         xf (comp
@@ -234,18 +246,26 @@
   (for [{id :id namelower :namelower} @products]
     ^{:key id} [:option {:id id} namelower]))
 
-;; new mock page
 
+(defn query-recipe-db
+  []
+  (ajax/GET "/atlas/recipe-db"
+    :handler (fn [response]
+               (let [edn-payload (cljs.reader/read-string response)]
+                 (reset! recipe-db edn-payload)))))
+
+(defn make-options
+  [xs]
+  (for [{id :id namelower :namelower} xs]
+    ^{:key id} [:option {:id id :value namelower} namelower]))
+
+;; new mock page
+;; 
+;; 
 (defn atlas-mock-page []
   (let [search-for (atom {:ingredient "Nothing" :product "Nothing" :cooking false})
-        query query-substances
-        query2 query-substance-db
-        query3 query-products
-        query4 query-lookup]
+        query query-recipe-db]
     (query)
-    (query2)
-    (query3)
-    (query4)
     (fn []
       [:div
        [:h3 "Find recipes"]
@@ -253,20 +273,20 @@
         [:label {:for "ingredients-inp"} "By ingredient:"]
         [:input#ingredients-inp {:type "text" :list "ingredients-list" :name "ingredients"}]
         [:datalist#ingredients-list
-         (make-substance-options)]
+         (make-options (:substances @recipe-db))]
 
         [:label {:for "products-inp"} "By result:"]
         [:input#products-inp {:type "text" :list "products-list" :name "products"}]
         [:datalist#products-list
-         (make-products-options)]
+         (make-options (:products @recipe-db))]
 
         "Include cooking: "
         [:input {:type "checkbox" :id "includeCooking"}]]
 
        [:button
         {:on-click (fn [_]
-                     (reset! search-for {:ingredient (get @lookup (get-value "ingredients-inp"))
-                                         :product (get @lookup (get-value "products-inp"))
+                     (reset! search-for {:ingredient (get (:lookup @recipe-db) (get-value "ingredients-inp"))
+                                         :product (get (:lookup @recipe-db) (get-value "products-inp"))
                                          :cooking (checkbox-value "includeCooking")}))}
         "Search"]
        [:div "Found:" @search-for]

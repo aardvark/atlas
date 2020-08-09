@@ -5,8 +5,8 @@
    [reitit.ring :as reitit-ring]
    [reagent-shadow-sandbox.middleware :refer [middleware]]
    [hiccup.page :refer [include-js include-css html5]]
-   [config.core :refer [env]]
-   [net.fiendishplatypus.file.index :as index]))
+   [config.core :refer [env]]))
+   
 
 (def mount-target
   [:div#app
@@ -103,6 +103,15 @@
    :headers {"Content-Type" "application/edn"}
    :body (str (lookup-storage))})
 
+(defn recipe-db-handler
+  [_request]
+  {:status 200
+   :headers {"Content-Type" "application/edn"}
+   :body (str {:substances (substance-storage)
+               :lookup (lookup-storage)
+               :products (products-storage)
+               :substance-db (substance-db-storage)})})
+
 (def app
   (reitit-ring/ring-handler
    (reitit-ring/router
@@ -112,6 +121,7 @@
      ["/atlas/products" {:get {:handler products-handler}}]
      ["/atlas/substance-db" {:get {:handler substance-db-handler}}]
      ["/atlas/lookup" {:get {:handler lookup-handler}}]
+     ["/atlas/recipe-db" {:get {:handler recipe-db-handler}}]
      ["/sandbox/atlas/page/mock" {:get {:handler index-handler}}]
      ["/items"
       ["" {:get {:handler index-handler}}]

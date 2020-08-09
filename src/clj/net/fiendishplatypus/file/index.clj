@@ -793,7 +793,7 @@
 
 ;;(get (name->id) "Wriggling Jam")
 ;;
-(spit "resources/public/nameToIdLookup.edn" (pr-str (name->id)))
+;;(spit "resources/public/nameToIdLookup.edn" (pr-str (name->id)))
 
 (defn substance-db
   []

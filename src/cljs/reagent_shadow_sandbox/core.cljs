@@ -1,5 +1,7 @@
 (ns reagent-shadow-sandbox.core
   (:require
+   [reagent-shadow-sandbox.checkbox :as checkbox]
+   [reagent-shadow-sandbox.element :as element]
    [reagent.core :as reagent :refer [atom]]
    [reagent.dom :as rdom]
    [reagent.session :as session]
@@ -24,19 +26,7 @@
 
 ;; -------------------------
 ;; Page components
-
-(defn get-value
-  [elId]
-  (aget (.getElementById js/document elId) "value"))
-
-
-(defn checkbox-value
-  [elementId]
-  (let [el (.getElementById js/document elementId)
-        v (aget el "checked")]
-    v))
-
-
+;; 
 ;; Substance db query
 ;; 
 (defn ingredient->row
@@ -161,9 +151,9 @@
 
        [:button
         {:on-click (fn [_]
-                     (reset! search-for {:ingredient (get (:lookup @recipe-db) (get-value "ingredients-inp"))
-                                         :product (get (:lookup @recipe-db) (get-value "products-inp"))
-                                         :cooking (checkbox-value "includeCooking")}))}
+                     (reset! search-for {:ingredient (get (:lookup @recipe-db) (element/value "ingredients-inp"))
+                                         :product (get (:lookup @recipe-db) (element/value "products-inp"))
+                                         :cooking (checkbox/value "includeCooking")}))}
         "Search"]
        [:div "Found:" @search-for]
        (substance->ingredient-recipes search-for)])))

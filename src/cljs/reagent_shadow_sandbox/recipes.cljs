@@ -70,7 +70,6 @@
 
 (defn make-options
   [xs]
-  (println xs)
   (for [{id :id namelower :namelower} xs]
     ^{:key id} [:option {:id id :value namelower} namelower]))
 
@@ -123,7 +122,13 @@
        [:h3 "Find recipes"]
        [:div
         [:label {:for "ingredients-inp"} "By ingredient:"]
+        
         [:input#ingredients-inp {:type "text" :list "ingredients-list" :name "ingredients"}]
+        [:button 
+         {:on-click (fn [_] 
+                      (swap! search-for (fn [current] (assoc current :ingredient nil)))
+                      (aset (.getElementById js/document "ingredients-inp") "value" ""))}
+         "X"]
         [:datalist#ingredients-list
          (make-options (:substances @recipe-db))]
 

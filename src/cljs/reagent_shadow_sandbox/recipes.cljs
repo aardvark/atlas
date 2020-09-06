@@ -68,22 +68,33 @@
             empty-ingredients
             (ingredient->row result))))
 
+(defn make-options
+  [xs]
+  (println xs)
+  (for [{id :id namelower :namelower} xs]
+    ^{:key id} [:option {:id id :value namelower} namelower]))
+
 ;;TODO make this adapt to the recipes longer than 3 ingredient
 (defn substance->ingredient-recipes
+  "Create table for given input output ingredients"
   [search-for]
   (let [recipes (substance-by-number-of-ingredients search-for)]
     (into []
           (cons (keyword (str "div.grid-3"))
                 (concat
-                 [[:span>strong "Recipe Name"]
-                  [:span>strong "Ingredient A"]
-                  [:span>strong "#"]
-                  [:span>strong "Ingredient B"]
-                  [:span>strong "#"]
-                  [:span>strong "Ingredient C"]
-                  [:span>strong "#"]
-                  [:span>strong "Result"]
-                  [:span>strong "#"]]
+                 [[:span#recipe-header.t-header
+                   [:strong "Recipe Name"]]
+                  [:span#ingredients-header.t-header
+                   [:strong "Ingredients"]]
+
+                  [:span#result-header.t-header [:strong "Result"]]
+                  [:span#result-amnts.t-header [:strong "#"]]
+                  [:span.t-header [:strong "A"]]
+                  [:span.t-header [:strong "#"]]
+                  [:span.t-header [:strong "B"]]
+                  [:span.t-header [:strong "#"]]
+                  [:span.t-header [:strong "C"]]
+                  [:span.t-header [:strong "#"]]]
                  (mapcat recipe->row
                          (concat (get recipes 1)
                                  (get recipes 2)
@@ -99,10 +110,6 @@
                (let [edn-payload (cljs.reader/read-string response)]
                  (reset! recipe-db edn-payload)))))
 
-(defn make-options
-  [xs]
-  (for [{id :id namelower :namelower} xs]
-    ^{:key id} [:option {:id id :value namelower} namelower]))
 
 ;; new mock page
 ;; 
@@ -135,4 +142,5 @@
                                          :cooking (checkbox/value "includeCooking")}))}
         "Search"]
        [:div "Found:" @search-for]
-       (substance->ingredient-recipes search-for)])))
+       [substance->ingredient-recipes search-for]])))
+       

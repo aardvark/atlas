@@ -72,10 +72,6 @@
               :pretty-print  true}}}}
 
 
-
-            
-   
-
   :figwheel
   {:http-server-root "public"
    :server-port 3449

@@ -35,17 +35,22 @@
 
 (defn substance-by-number-of-ingredients
   [query]
-  (let [id (:ingredient @query)
+  (let [selected-ingredient (:ingredient @query)
         substance-db (get @recipe-db :substance-db)
-        substance (get substance-db id)
-        recipes (:as-ingredient substance)
+        substance (get substance-db selected-ingredient)
+        selected-product (:product @query)
+        product (get substance-db selected-product)
+        recipes (concat (:as-ingredient substance)
+                        (:as-result product))
         cooking? (:cooking @query)
-        product (:product @query)
+        
         xf (comp
             (filter #(if cooking? true (= (:cooking %) false)))
-            (filter #(if (nil? product) true
-                         (= product (get-in % [:result :id]))))
-            (map (partial with-ingredients-by-id-first id)))
+            (filter #(if (nil? selected-ingredient) true
+                         (contains? (set (map :id (:ingredients %))) selected-ingredient)))
+            (filter #(if (nil? selected-product) true
+                         (= selected-product (get-in % [:result :id]))))
+            (map (partial with-ingredients-by-id-first selected-ingredient)))
 
         recipes (into [] xf recipes)
 
@@ -124,7 +129,7 @@
         [:label {:for "ingredients-inp"} "By ingredient:"]
         
         [:input#ingredients-inp {:type "text" :list "ingredients-list" :name "ingredients"}]
-        [:button 
+        [:button#ingredients-clear-btn 
          {:on-click (fn [_] 
                       (swap! search-for (fn [current] (assoc current :ingredient nil)))
                       (aset (.getElementById js/document "ingredients-inp") "value" ""))}
@@ -134,6 +139,11 @@
 
         [:label {:for "products-inp"} "By result:"]
         [:input#products-inp {:type "text" :list "products-list" :name "products"}]
+        [:button#products-clear-btn
+         {:on-click (fn [_]
+                      (swap! search-for (fn [current] (assoc current :product nil)))
+                      (aset (.getElementById js/document "products-inp") "value" ""))}
+         "X"]
         [:datalist#products-list
          (make-options (:products @recipe-db))]
 

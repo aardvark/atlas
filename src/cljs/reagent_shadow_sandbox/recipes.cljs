@@ -35,11 +35,14 @@
 
 (defn substance-by-number-of-ingredients
   [query]
-  (let [selected-ingredient (:ingredient @query)
-        substance-db (get @recipe-db :substance-db)
+  (let [substance-db (get @recipe-db :substance-db)
+        
+        selected-ingredient (:ingredient @query)
         substance (get substance-db selected-ingredient)
+        
         selected-product (:product @query)
         product (get substance-db selected-product)
+        
         recipes (concat (:as-ingredient substance)
                         (:as-result product))
         cooking? (:cooking @query)
@@ -51,8 +54,11 @@
             (filter #(if (nil? selected-product) true
                          (= selected-product (get-in % [:result :id]))))
             (map (partial with-ingredients-by-id-first selected-ingredient)))
-
-        recipes (into [] xf recipes)
+        
+        recipes (if (and (nil? selected-ingredient) 
+                         (nil? selected-product))
+                  (mapcat :as-ingredient (vals substance-db))
+                  (into [] xf recipes))
 
         sorted-recipes (sort-by (fn [x] (:amount (first (:ingredients x))))
                                 compare
@@ -131,7 +137,7 @@
 ;; 
 ;; 
 (defn recipes-page []
-  (let [search-for (atom {:ingredient "Nothing" :product "Nothing" :cooking false})
+  (let [search-for (atom {:ingredient nil :product nil :cooking false})
         query query-recipe-db]
     (query)
     (fn []

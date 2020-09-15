@@ -115,6 +115,18 @@
                  (reset! recipe-db edn-payload)))))
 
 
+(defn clear-btn
+  [state name]
+  [:button 
+    {:id (str name "-clear-btn")
+     :on-click (fn [_]
+                 ;; reset state
+                 (swap! state (fn [current] (assoc current (keyword name) nil)))
+                 ;; reset input field
+                 (aset (.getElementById js/document (str name "-inp")) "value" ""))}
+    "X"])
+  
+
 ;; new mock page
 ;; 
 ;; 
@@ -126,24 +138,16 @@
       [:div
        [:h3 "Find recipes"]
        [:div
-        [:label {:for "ingredients-inp"} "By ingredient:"]
         
-        [:input#ingredients-inp {:type "text" :list "ingredients-list" :name "ingredients"}]
-        [:button#ingredients-clear-btn 
-         {:on-click (fn [_] 
-                      (swap! search-for (fn [current] (assoc current :ingredient nil)))
-                      (aset (.getElementById js/document "ingredients-inp") "value" ""))}
-         "X"]
+        [:label {:for "ingredient-inp"} "By ingredient:"]
+        [:input#ingredient-inp {:type "text" :list "ingredients-list" :name "ingredients"}]
+        [clear-btn search-for "ingredient"]
         [:datalist#ingredients-list
          (make-options (:substances @recipe-db))]
 
-        [:label {:for "products-inp"} "By result:"]
-        [:input#products-inp {:type "text" :list "products-list" :name "products"}]
-        [:button#products-clear-btn
-         {:on-click (fn [_]
-                      (swap! search-for (fn [current] (assoc current :product nil)))
-                      (aset (.getElementById js/document "products-inp") "value" ""))}
-         "X"]
+        [:label {:for "product-inp"} "By result:"]
+        [:input#product-inp {:type "text" :list "products-list" :name "products"}]
+        [clear-btn search-for "product"]
         [:datalist#products-list
          (make-options (:products @recipe-db))]
 
@@ -152,8 +156,8 @@
 
        [:button
         {:on-click (fn [_]
-                     (reset! search-for {:ingredient (get (:lookup @recipe-db) (element/value "ingredients-inp"))
-                                         :product (get (:lookup @recipe-db) (element/value "products-inp"))
+                     (reset! search-for {:ingredient (get (:lookup @recipe-db) (element/value "ingredient-inp"))
+                                         :product (get (:lookup @recipe-db) (element/value "product-inp"))
                                          :cooking (checkbox/value "includeCooking")}))}
         "Search"]
        [:div "Found:" @search-for]

@@ -153,7 +153,8 @@
                     start-mark (:start-mark language/index-meta)
                     start?     (fn [s] (clojure.string/includes? s start-mark))
                     end?       (:end? language/index-meta)
-                    id         (fn [s] (or (if (start? s) start-mark nil) (matcher id-matcher s)))
+                    id         (fn [s] (or (if (start? s) start-mark nil)
+                                           (matcher id-matcher s)))
                     xf         (map (fn [s]
                                       {:size   (+ 2 (count (.getBytes s "UTF-8")))
                                        :start? (start? s)
@@ -171,7 +172,9 @@
                                      (language/language
                                       (load-record file record)
                                       (:id record))
-                                     (catch Exception e (println "Error on loading file: " file ". Record: " record ". Xml: " (load-record file record)))))
+                                     (catch Exception e (println "Error on loading file: " file 
+                                                                 ". Record: " record 
+                                                                 ". Xml: " (load-record file record)))))
                                  records)
                         ;; here we are filtering full language dictionary for only 
                         ;; keys we are searching for, ideally we may move this step 

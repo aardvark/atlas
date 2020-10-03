@@ -24,7 +24,8 @@
                  [cljs-ajax "0.8.0"]
                  [org.clojure/data.xml "0.0.8"]
                  [com.github.kyleburton/clj-xpath "1.4.11"]
-                 [org.clojure/test.check "1.1.0"]]
+                 [org.clojure/test.check "1.1.0"]
+                 [com.grammarly/omniconf "0.4.2"]]
 
   :plugins [[lein-environ "1.1.0"]
             [lein-cljsbuild "1.1.7"]

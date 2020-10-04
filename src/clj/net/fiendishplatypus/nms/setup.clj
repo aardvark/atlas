@@ -1,4 +1,9 @@
 (ns net.fiendishplatypus.nms.setup
+  "Contain accessor functions for EXML files and for calling
+   MBINCompiler process.
+   Should be mostly used to rerun dictonaries creation when new
+   version of NMS is released and recipes data can be changed.
+   Invoking EXML files will run a full MBIN -> EXML transformation steps."
   (:require [clojure.java.io]
             [clojure.java.shell]
             [clojure.string]
@@ -115,14 +120,26 @@
 
 ;; EXML file accessors
 
-(defn language-files 
+(defn language-files!
+  "Take MBIN language files from location based on configuration
+   and produces a list of EXML files. 
+   Will recreate EXML files from scratch running full MBIN -> EXML
+   transfromation step."
   []
   (map mbin->exml (list-lang-files)))
 
-(defn substance-file
+(defn substance-file!
+  "Take MBIN substance file from location based on configuration
+   and produces EXML file. 
+   Will recreate EXML file from scratch running full MBIN -> EXML
+   transfromation step."
   []
   (mbin->exml (substance-mbin-file)))
 
-(defn product-file
+(defn product-file!
+  "Take MBIN product file from location based on configuration
+   and produces EXML file. 
+   Will recreate EXML file from scratch running full MBIN -> EXML
+   transfromation step."
   []
   (mbin->exml (product-mbin-file)))

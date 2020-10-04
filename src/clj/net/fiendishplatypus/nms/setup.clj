@@ -10,12 +10,31 @@
   {:lang-mbin-dir {:description "Directory where MBIN LANGUAGE files are located"
                    :type :string}
    :mbin-compiler-dir {:description "Directory where MBINCompiler.exe can be found"
-                       :type :string}})
+                       :type :string}
+   :substance-mbin-dir {:description "Directory where NMS_REALITY_GCSUBSTANCETABLE.MBIN can be found"
+                        :type :string}
+   :product-mbin-dir {:description "Directory where NMS_REALITY_GCPRODUCTTABLE.MBIN can be found"
+                      :type :string}})
 
-(cfg/populate-from-map {:lang-mbin-dir "D:\\NMSUnpacked\\LANGUAGE"
-                        :mbin-compiler-dir "C:\\Projects\\NoManSkyMods"})
 
-;; File lookup operation
+(cfg/populate-from-map 
+ {:lang-mbin-dir "D:\\NMSUnpacked\\LANGUAGE"
+  :mbin-compiler-dir "C:\\Projects\\NoManSkyMods"
+  :substance-filename "NMS_REALITY_GCSUBSTANCETABLE.MBIN"
+  :substance-mbin-dir "D:\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
+  :product-mbin-dir "D:\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
+  :product-filename "NMS_REALITY_GCPRODUCTTABLE.MBIN"})
+                        
+;; MBIN file lookup operation
+ 
+(defn product-mbin-file 
+  []
+  (clojure.java.io/file (cfg/get :product-mbin-dir) (cfg/get :product-filename)))
+ 
+(defn substance-mbin-file 
+  []
+  (clojure.java.io/file (cfg/get :substance-mbin-dir) (cfg/get :substance-filename)))
+
 
 (defn engilsh-lang-file?
   [name]
@@ -87,7 +106,6 @@
                                  "\\"
                                  (:name (file-to-name-ext-pair filename))
                                  ".EXML")]
-
     (clojure.java.shell/with-sh-dir mbin-compiler-dir
       (clojure.java.shell/sh "cmd.exe" "/C" "call" "MBINCompiler.exe" "-q" path-str))
     (java.io.File. exml-file-path)))
@@ -95,6 +113,16 @@
 (comment
   (mbin->exml (first (list-lang-files))))
 
+;; EXML file accessors
+
 (defn language-files 
   []
   (map mbin->exml (list-lang-files)))
+
+(defn substance-file
+  []
+  (mbin->exml (substance-mbin-file)))
+
+(defn product-file
+  []
+  (mbin->exml (product-mbin-file)))

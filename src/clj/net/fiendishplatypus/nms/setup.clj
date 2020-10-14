@@ -79,14 +79,26 @@
 ;; saving map of :filename and :sha256sum should be enough
 ;; :mbin-file and :exml-file parameters can be always added as they
 ;; appear in the processing step
+;; 
+;; How this should work?
+;; 
+;; * Check if env LOCALAPPDATA dir contains existing snapshot run info.
+;; * for each file:
+;; ** check in and out check checksums, if one of them not match, redo file
+;;    conversion
+;; ** if both match simply return existing file
 
+(def run-info-spec
+  {:name :string
+   :mbin {:file :file :digest :string}
+   :exml {:file :file :digest :string}})
+    
 (defn file-and-digest
   [file]
   (let [digest-arr (file-to-a-digest file)]
-    {:filename (.getName file) 
-     :mbin-file file
-     :sha256sum (clojure.string/join (map #(format "%02x" %)
-                                          (seq digest-arr)))}))
+     {:file file
+      :digest (clojure.string/join (map #(format "%02x" %)
+                                        (seq digest-arr)))}))
 
 (comment
   (map file-and-digest (list-lang-files)))
@@ -98,6 +110,72 @@
     {:name name :ext ext}))
 
 ;; MBIN decompiler invocation
+
+(def run-cache-entry
+  {})
+
+(defn cache-entry
+  [file]
+  (let [name (:name (file-to-name-ext-pair (.getName file)))]
+    (get run-cache-entry name)))
+ 
+(defn exml-cached?
+  [cache-entry]
+  (let [cached-exml-digest (get-in cache-entry [:exml :digest] "")
+        current-exml-digest (:digest (file-and-digest (get-in cache-entry [:exml :file])))]
+     (= cached-exml-digest current-exml-digest)))
+
+
+(defn mbin-cached?
+  "get a map of mbin :file and :digest. 
+   Return true if both mbin and exml entries exist in a converter cache and
+   their digests are matching"
+  [new-file]
+  (let [cache-entry (cache-entry (:file new-file))
+        new-mbin-digest (:digest new-file)
+        cached-mbin-digest (get-in cache-entry [:mbin :digest] "")
+        mbin-match (= cached-mbin-digest new-mbin-digest)]
+    (and mbin-match
+         (exml-cached? cache-entry))))
+
+
+(comment
+  (def run-cache-entry
+    {"NMS_LOC1_ENGLISH"
+     {:mbin
+      {:digest "fba852cba4eaae655e294bdbd62365af1cfcfc8769f53876d5db83aea0afb509"}
+      :exml
+      {:digest "bf249b8fa2e067955b3564bd93858e02b9a094da8c8a6012ceb6cc0555b4d708"
+       :file (clojure.java.io/file "D:\\NMSUnpacked\\LANGUAGE\\NMS_LOC1_ENGLISH.EXML")}}})
+  
+  (mbin-cached?  (file-and-digest (first (list-lang-files)))))
+
+(defn mbin->exml2
+  ""
+  [file-def]
+  (if (mbin-cached? file-def)
+    (:exml (cache-entry (:file file-def)))
+    ;; not cached so we need to run exml transfromation
+    (let [file (:file file-def)
+          path-str (.toString (.toPath file))
+          filename (.getName file)
+          parent-dir (.getParent file)
+          exml-file-path (str parent-dir
+                              "\\"
+                              (:name (file-to-name-ext-pair filename))
+                              ".EXML")
+          mbin-compiler-dir (cfg/get :mbin-compiler-dir)
+          _ (clojure.java.shell/with-sh-dir mbin-compiler-dir
+              (clojure.java.shell/sh "cmd.exe" "/C" "call" "MBINCompiler.exe" "-q" path-str))
+          exml (java.io.File. exml-file-path)]
+      (file-and-digest exml))))
+
+(comment
+  (mbin->exml2  (file-and-digest (second (list-lang-files)))))
+  ;; => {:file #object[java.io.File 0x4496a00e "D:\\NMSUnpacked\\LANGUAGE\\NMS_LOC1_ENGLISH.EXML"],
+  ;;     :digest "bf249b8fa2e067955b3564bd93858e02b9a094da8c8a6012ceb6cc0555b4d708"}
+
+
 
 (defn mbin->exml 
   "Convert MBIN `file` to the EXML, and return it. 

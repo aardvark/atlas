@@ -71,6 +71,16 @@
                      (.digest (.getMessageDigest dis)))]
    digest-arr))
 
+(defn file-and-digest
+  [file]
+  {:file file
+   :digest (clojure.string/join (map #(format "%02x" %)
+                                     (seq (file-to-a-digest file))))})
+
+(comment
+  (map file-and-digest (list-lang-files)))
+
+
 ;; `file-and-digest` function can be used to do a smart conversion.
 ;; Meaning we can only run conversion to XML if new file is different
 ;; from previous one.
@@ -88,37 +98,27 @@
 ;;    conversion
 ;; ** if both match simply return existing file
 
+
+;; Cache operations 
 (def run-info-spec
   {:name :string
    :mbin {:file :file :digest :string}
    :exml {:file :file :digest :string}})
-    
-(defn file-and-digest
-  [file]
-  (let [digest-arr (file-to-a-digest file)]
-     {:file file
-      :digest (clojure.string/join (map #(format "%02x" %)
-                                        (seq digest-arr)))}))
 
-(comment
-  (map file-and-digest (list-lang-files)))
+(def run-cache
+  {})
 
-
-(defn file-to-name-ext-pair 
+(defn file-to-name-ext-pair
   [filename]
   (let [[name ext] (clojure.string/split filename #"\.")]
     {:name name :ext ext}))
 
-;; MBIN decompiler invocation
-
-(def run-cache-entry
-  {})
 
 (defn cache-entry
   [file]
   (let [name (:name (file-to-name-ext-pair (.getName file)))]
-    (get run-cache-entry name)))
- 
+    (get run-cache name)))
+
 (defn exml-cached?
   [cache-entry]
   (let [cached-exml-digest (get-in cache-entry [:exml :digest] "")
@@ -138,9 +138,8 @@
     (and mbin-match
          (exml-cached? cache-entry))))
 
-
 (comment
-  (def run-cache-entry
+  (def run-cache
     {"NMS_LOC1_ENGLISH"
      {:mbin
       {:digest "fba852cba4eaae655e294bdbd62365af1cfcfc8769f53876d5db83aea0afb509"}
@@ -150,7 +149,8 @@
   
   (mbin-cached?  (file-and-digest (first (list-lang-files)))))
 
-(defn mbin->exml2
+;; MBIN decompiler invocation
+(defn mbin->exml
   ""
   [file-def]
   (if (mbin-cached? file-def)
@@ -171,30 +171,9 @@
       (file-and-digest exml))))
 
 (comment
-  (mbin->exml2  (file-and-digest (second (list-lang-files)))))
+  (mbin->exml (file-and-digest (second (list-lang-files)))))
   ;; => {:file #object[java.io.File 0x4496a00e "D:\\NMSUnpacked\\LANGUAGE\\NMS_LOC1_ENGLISH.EXML"],
   ;;     :digest "bf249b8fa2e067955b3564bd93858e02b9a094da8c8a6012ceb6cc0555b4d708"}
-
-
-
-(defn mbin->exml 
-  "Convert MBIN `file` to the EXML, and return it. 
-   Converted file will be located in same directory as a passed MBIN `file`. "
-  [file]
-  (let [mbin-compiler-dir (cfg/get :mbin-compiler-dir)
-        path-str (.toString (.toPath file))
-        filename (.getName file)
-        parent-dir (.getParent file)
-        exml-file-path (str parent-dir
-                                 "\\"
-                                 (:name (file-to-name-ext-pair filename))
-                                 ".EXML")]
-    (clojure.java.shell/with-sh-dir mbin-compiler-dir
-      (clojure.java.shell/sh "cmd.exe" "/C" "call" "MBINCompiler.exe" "-q" path-str))
-    (java.io.File. exml-file-path)))
-
-(comment
-  (mbin->exml (first (list-lang-files))))
 
 ;; EXML file accessors
 
@@ -204,7 +183,11 @@
    Will recreate EXML files from scratch running full MBIN -> EXML
    transfromation step."
   []
-  (map mbin->exml (list-lang-files)))
+  (map
+   (comp #(:file %)
+         mbin->exml
+         file-and-digest)
+   (list-lang-files)))
 
 (defn substance-file!
   "Take MBIN substance file from location based on configuration
@@ -212,7 +195,10 @@
    Will recreate EXML file from scratch running full MBIN -> EXML
    transfromation step."
   []
-  (mbin->exml (substance-mbin-file)))
+  (map (comp #(:file %)
+             mbin->exml
+             file-and-digest)
+       (substance-mbin-file)))
 
 (defn product-file!
   "Take MBIN product file from location based on configuration
@@ -220,4 +206,7 @@
    Will recreate EXML file from scratch running full MBIN -> EXML
    transfromation step."
   []
-  (mbin->exml (product-mbin-file)))
+  (map (comp #(:file %)
+             mbin->exml
+             file-and-digest)
+       (product-mbin-file)))

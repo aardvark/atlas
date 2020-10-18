@@ -7,7 +7,12 @@
   (:require [clojure.java.io]
             [clojure.java.shell]
             [clojure.string]
-            [omniconf.core :as cfg]))
+            [clojure.edn]
+            [omniconf.core :as cfg]
+            [taoensso.timbre :as timbre
+             :refer [log  trace  debug  info  warn  error  fatal  report
+                     logf tracef debugf infof warnf errorf fatalf reportf
+                     spy get-env]]))
 
 ;; Configuration 
 
@@ -105,8 +110,68 @@
    :mbin {:file :file :digest :string}
    :exml {:file :file :digest :string}})
 
+(defn- load-edn
+  "Load edn from an io/reader source (filename or io/resource)."
+  [source]
+  (try
+    (with-open [r (clojure.java.io/reader source)]
+      (clojure.edn/read (java.io.PushbackReader. r)))
+
+    (catch java.io.IOException e
+      (printf "Couldn't open '%s': %s\n" source (.getMessage e)))
+    (catch RuntimeException e
+      (printf "Error parsing edn file '%s': %s\n" source (.getMessage e)))))
+
+(defn- preload-cache
+  []
+  (let [cache-file
+        (clojure.java.io/file (System/getenv "LOCALAPPDATA") "nms-atlas-converter.cache")]
+    (if (.exists cache-file)
+      (do (info "Found existing cache file:" cache-file)
+          (load-edn cache-file))
+      {})))
+
+
+(defn persist-cache
+  [run-cache]
+  (let [cache-file
+        (clojure.java.io/file (System/getenv "LOCALAPPDATA") "nms-atlas-converter.cache")
+        run-cache (letfn [(to-path [x [k v]]
+                            [k (update-in v [x :file] (fn [^java.io.File x] (.getPath x)))])
+                          (strip-mbin []
+                            (partial to-path :mbin))
+                          (strip-exml []
+                            (partial to-path :exml))]
+                    (into {} (map
+                              (comp (strip-exml) (strip-mbin)))
+                          run-cache))]
+
+    (try
+      (with-open [w (clojure.java.io/writer cache-file)]
+        (spit w run-cache))
+      (catch RuntimeException e
+        (error e "Unable to persist cache t " cache-file)))))
+
 (def run-cache
-  (atom {}))
+  (atom (preload-cache)))
+
+(comment
+  "Cache operations"
+  @run-cache
+  (letfn [(to-path [x [k v]]
+            [k (update-in v [x :file] (fn [^java.io.File x] (.getPath x)))])
+          (strip-mbin []
+            (partial to-path :mbin))
+          (strip-exml []
+            (partial to-path :exml))]
+    (into {} (map 
+              (comp (strip-exml) (strip-mbin)))
+          @run-cache))
+  (persist-cache @run-cache)
+  (load-edn 
+   (clojure.java.io/file (System/getenv "LOCALAPPDATA")
+                         "nms-atlas-converter.cache")))
+
 
 (defn file-to-name-ext-pair
   [filename]
@@ -117,7 +182,7 @@
 (defn cache-entry
   [file]
   (let [name (:name (file-to-name-ext-pair (.getName file)))]
-    (get run-cache name)))
+    (get @run-cache name)))
 
 (defn exml-cached?
   [cache-entry]
@@ -135,15 +200,22 @@
         new-mbin-digest (:digest new-file)
         cached-mbin-digest (get-in cache-entry [:mbin :digest] "")
         mbin-match (= cached-mbin-digest new-mbin-digest)]
-    (and mbin-match
-         (exml-cached? cache-entry))))
+    (info "MBIN cache check for" (:file new-file) "(" mbin-match ")")
+    (if mbin-match 
+      (do (debug "MBIN " (:file new-file) " cached.")
+          (if (exml-cached? cache-entry)
+            (do (debug "EXML " (:file new-file) " cached.")
+                true)
+            false))
+      false)))
 
 (comment
-  (mbin-cached?  (file-and-digest (first (list-lang-files)))))
+  (mbin-cached? (file-and-digest (first (list-lang-files)))))
 
 ;; MBIN decompiler invocation
 (defn exml
   [file]
+  (info "Running MBIN -> EXML conversion for " (.toString (.toPath file)))
   (let [path-str (.toString (.toPath file))
         filename (.getName file)
         parent-dir (.getParent file)

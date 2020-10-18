@@ -106,7 +106,7 @@
    :exml {:file :file :digest :string}})
 
 (def run-cache
-  {})
+  (atom {}))
 
 (defn file-to-name-ext-pair
   [filename]
@@ -139,55 +139,64 @@
          (exml-cached? cache-entry))))
 
 (comment
-  (def run-cache
-    {"NMS_LOC1_ENGLISH"
-     {:mbin
-      {:digest "fba852cba4eaae655e294bdbd62365af1cfcfc8769f53876d5db83aea0afb509"}
-      :exml
-      {:digest "bf249b8fa2e067955b3564bd93858e02b9a094da8c8a6012ceb6cc0555b4d708"
-       :file (clojure.java.io/file "D:\\NMSUnpacked\\LANGUAGE\\NMS_LOC1_ENGLISH.EXML")}}})
-  
   (mbin-cached?  (file-and-digest (first (list-lang-files)))))
 
 ;; MBIN decompiler invocation
+(defn exml
+  [file]
+  (let [path-str (.toString (.toPath file))
+        filename (.getName file)
+        parent-dir (.getParent file)
+        exml-file-path (str parent-dir
+                        "\\"
+                        (:name (file-to-name-ext-pair filename))
+                        ".EXML")
+        mbin-compiler-dir (cfg/get :mbin-compiler-dir)
+        _  (clojure.java.shell/with-sh-dir mbin-compiler-dir
+              (clojure.java.shell/sh "cmd.exe" "/C" "call" "MBINCompiler.exe" "-q" path-str))
+        exml (java.io.File. exml-file-path)]
+    exml))
+
+
 (defn mbin->exml
   ""
   [file-def]
   (if (mbin-cached? file-def)
     (:exml (cache-entry (:file file-def)))
-    ;; not cached so we need to run exml transfromation
+    ;; not cached so we need to run exml transformation
     (let [file (:file file-def)
-          path-str (.toString (.toPath file))
-          filename (.getName file)
-          parent-dir (.getParent file)
-          exml-file-path (str parent-dir
-                              "\\"
-                              (:name (file-to-name-ext-pair filename))
-                              ".EXML")
-          mbin-compiler-dir (cfg/get :mbin-compiler-dir)
-          _ (clojure.java.shell/with-sh-dir mbin-compiler-dir
-              (clojure.java.shell/sh "cmd.exe" "/C" "call" "MBINCompiler.exe" "-q" path-str))
-          exml (java.io.File. exml-file-path)]
-      (file-and-digest exml))))
-
+          filename (:name (file-to-name-ext-pair (.getName file)))
+          exml-def (file-and-digest (exml file))]
+      (swap! run-cache (fn [c k v]
+                         (assoc c k v))
+             filename {:mbin file-def
+                       :exml exml-def})
+      exml-def)))
+          
 (comment
-  (mbin->exml (file-and-digest (second (list-lang-files)))))
+  (mbin->exml (file-and-digest (second (list-lang-files))))
+  (update (file-and-digest (second (list-lang-files)))
+          :file #(.getPath %))
+   
+  (clojure.java.io/file (System/getenv "LOCALAPPDATA") ".nms-converter-cache")
+  @run-cache)
+
+
   ;; => {:file #object[java.io.File 0x4496a00e "D:\\NMSUnpacked\\LANGUAGE\\NMS_LOC1_ENGLISH.EXML"],
   ;;     :digest "bf249b8fa2e067955b3564bd93858e02b9a094da8c8a6012ceb6cc0555b4d708"}
 
 ;; EXML file accessors
 
 (defn language-files!
-  "Take MBIN language files from location based on configuration
+    "Take MBIN language files from location based on configuration
    and produces a list of EXML files. 
    Will recreate EXML files from scratch running full MBIN -> EXML
    transfromation step."
-  []
-  (map
-   (comp #(:file %)
-         mbin->exml
-         file-and-digest)
-   (list-lang-files)))
+    []
+    (map (comp #(:file %)
+               mbin->exml
+               file-and-digest)
+         (list-lang-files)))
 
 (defn substance-file!
   "Take MBIN substance file from location based on configuration
@@ -195,10 +204,10 @@
    Will recreate EXML file from scratch running full MBIN -> EXML
    transfromation step."
   []
-  (map (comp #(:file %)
-             mbin->exml
-             file-and-digest)
-       (substance-mbin-file)))
+  ((comp #(:file %)
+         mbin->exml
+         file-and-digest)
+   (substance-mbin-file)))
 
 (defn product-file!
   "Take MBIN product file from location based on configuration
@@ -206,7 +215,14 @@
    Will recreate EXML file from scratch running full MBIN -> EXML
    transfromation step."
   []
-  (map (comp #(:file %)
-             mbin->exml
-             file-and-digest)
-       (product-mbin-file)))
+  ((comp #(:file %)
+         mbin->exml
+         file-and-digest)
+   (product-mbin-file)))
+
+(comment 
+  (language-files!)
+  (substance-file!)
+  (product-file!)
+  @run-cache)
+

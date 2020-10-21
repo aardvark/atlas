@@ -86,7 +86,7 @@
       (String. (.array buffer) 
                (java.nio.charset.Charset/forName "UTF-8")))))
 
-      
+
 (comment
   "UTF-8 check"
   (load-record "D:\\NMSUnpacked\\LANGUAGE\\NMS_LOC1_ENGLISH.EXML" 
@@ -94,13 +94,22 @@
 
 
 (defn translate
+  "Accepts 3 parameter:
+     - `dict` -- dictionary map for translation key id -> value translation
+     - `input` -- data map for translation input keys are entity ids values are entity map
+                  in which we need to translate some keys
+     - `keys-to-translate` -- keys in input value that require translation
+   
+   Return `input` data map with translated keys"
   [dict input keys-to-tranlate]
   (let [lookup-key (fn [m k] {k (get dict (get m k))})]
     (into {}
           (map (fn [e]
-                 {(first e) (apply merge
-                                   (second e)
-                                   (map (partial lookup-key (second e)) keys-to-tranlate))})
+                 {(first e)
+                  (apply merge
+                         (second e)
+                         (map (partial lookup-key (second e))
+                              keys-to-tranlate))})
                input))))
 
 
@@ -290,8 +299,8 @@
    ;;     "COLD1" {:name "DIOXITE", :id "COLD1", :namelower "Dioxite"}}
 
 
-
-(recipe/from-file index load-record)
+(comment 
+  (recipe/from-file index load-record))
 ;; => {"RECIPE_1"
 ;;     {:id "RECIPE_1",
 ;;      :name "UI_YEAST_PROCESS",

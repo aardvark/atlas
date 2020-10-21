@@ -5,7 +5,8 @@
             [net.fiendishplatypus.nms.language :as language]
             [net.fiendishplatypus.nms.substance :as substance]
             [net.fiendishplatypus.nms.recipe :as recipe]
-            [net.fiendishplatypus.nms.product :as product])
+            [net.fiendishplatypus.nms.product :as product]
+            [net.fiendishplatypus.nms.setup :as setup])
   (:import [java.io RandomAccessFile]
            [java.nio ByteBuffer]))
 
@@ -32,7 +33,7 @@
             (and (not (nil? (:id b))) (id? (:id a)))
             (assoc a :id (:id b) :size (+ (:size a) (:size b)))
 
-           ;; found end marker, need to generate additional record for next entry
+          ;; found end marker, need to generate additional record for next entry
             (:end? b)
             (let [m (assoc a :end? true)
                   m (update m :size + (:size b))
@@ -82,7 +83,14 @@
       (.seek file (:start record))
       (.read (.getChannel file) buffer)
       (.flip buffer)
-      (String. (.array buffer)))))
+      (String. (.array buffer) 
+               (java.nio.charset.Charset/forName "UTF-8")))))
+
+      
+(comment
+  "UTF-8 check"
+  (load-record "D:\\NMSUnpacked\\LANGUAGE\\NMS_LOC1_ENGLISH.EXML" 
+                {:start 16635518, :size 16637854, :start? true, :end? true, :id "EXP_VY’KEEN", :end 16637854}))
 
 
 (defn translate
@@ -105,12 +113,7 @@
                       :namelower "UI_ASTEROID3_NAME_L"}})
 
 (def lang-files
-  (list
-   "NMS_LOC6_ENGLISH.EXML"
-   "NMS_LOC5_ENGLISH.EXML"
-   "NMS_LOC4_ENGLISH.EXML"
-   "NMS_LOC1_ENGLISH.EXML"
-   "NMS_UPDATE3_ENGLISH.EXML"))
+  (setup/language-files!))
 
 
 (def dictionary-cache
@@ -132,7 +135,6 @@
     (into #{} xf to-enrich)))
 
 
-
 ;; dictionary prototype
 (defn make-dictionary
   "Prepare dictionary for translation `input` words.
@@ -148,8 +150,7 @@
         ;; so we update dictionary cache with found lines and return
         (swap! dictionary-cache merge acc)
         (let [dict
-              (let [file       (str "D:\\NMSProjects\\Notepad\\LANGUAGE\\" (first files))
-                    ;;TODO: move file location to props
+              (let [file       (first files)
                     start-mark (:start-mark language/index-meta)
                     start?     (fn [s] (clojure.string/includes? s start-mark))
                     end?       (:end? language/index-meta)
@@ -209,131 +210,6 @@
   (time (substance-dictionary)))
   ;; "Elapsed time: 75559.7906 msecs" first run
   ;; "Elapsed time: 150.034 msecs" secondary run
-  ;; => {"UI_LAND3_NAME_L" "Magnetised Ferrite",
-  ;;     "UI_SUNGOLD_NAME_L" "Liquid Sun",
-  ;;     "UI_SAND1_NAME_L" "Silicate Powder",
-  ;;     "UI_HOT1_NAME" "PHOSPHORUS",
-  ;;     "UI_PLANTSUB_RADIO_NAME_L" "Gamma Root",
-  ;;     "UI_AIR1_NAME_L" "Oxygen",
-  ;;     "UI_STELLAR2_NAME_L" "Chromatic Metal",
-  ;;     "UI_GREEN2_NAME_L" "Emeril",
-  ;;     "UI_EX_GREEN_NAME_L" "Activated Emeril",
-  ;;     "UI_DUSTY1_NAME" "PYRITE",
-  ;;     "UI_DUSTY1_NAME_L" "Pyrite",
-  ;;     "UI_PLANTSUB_DEADCREATURE_NAME" "MORDITE",
-  ;;     "UI_TOXIC1_NAME_L" "Ammonia",
-  ;;     "UI_PLANTSUB_LUSH_NAME_L" "Star Bulb",
-  ;;     "UI_WATERPLANT_NAME_L" "Cyto-Phosphate",
-  ;;     "UI_EX_YELLOW_NAME" "ACTIVATED COPPER",
-  ;;     "UI_FUEL_1_NAME" "CARBON",
-  ;;     "UI_EX_RED_NAME_L" "Activated Cadmium",
-  ;;     "SUB_DEADDRONE_NAME_L" "Pugneum",
-  ;;     "UI_MAINTAIN_SUB1_NAME" "RESIDUAL GOOP",
-  ;;     "UI_NEWWATER2_NAME" "CHLORINE",
-  ;;     "UI_WATER2_NAME_L" "Sodium",
-  ;;     "UI_BLUE2_NAME" "INDIUM",
-  ;;     "UI_STELLAR2_NAME" "CHROMATIC METAL",
-  ;;     "UI_MAINTAIN_SUB1_NAME_L" "Residual Goop",
-  ;;     "UI_MAINTAIN_SUB4_NAME_L" "Living Slime",
-  ;;     "UI_LAUNCHSUB2_NAME_L" "Deuterium",
-  ;;     "UI_FUEL_1_NAME_L" "Carbon",
-  ;;     "UI_STANDING_TRA" "GEK",
-  ;;     "UI_MAINTAIN_SUB4_NAME" "LIVING SLIME",
-  ;;     "UI_PLANTSUB_CAVE_NAME" "MARROW BULB",
-  ;;     "UI_STANDING_G_TRA" "MERCHANTS",
-  ;;     "UI_BLUE2_NAME_L" "Indium",
-  ;;     "UI_UNITS_REWARD_NAME" "UNITS",
-  ;;     "UI_CAVE2_NAME" "IONISED COBALT",
-  ;;     "UI_FUEL_2_NAME_L" "Condensed Carbon",
-  ;;     "UI_LUSH1_NAME" "PARAFFINIUM",
-  ;;     "UI_EX_RED_NAME" "ACTIVATED CADMIUM",
-  ;;     "UI_ASTEROID2_NAME" "GOLD",
-  ;;     "UI_TOXIC1_NAME" "AMMONIA",
-  ;;     "UI_ROCKETFUEL_NAME" "TRITIUM",
-  ;;     "UI_WATERPLANT_NAME" "CYTO-PHOSPHATE",
-  ;;     "UI_MAINTAIN_SUB5_NAME_L" "Viscous Fluids",
-  ;;     "UI_GAS_2_NAME_L" "Radon",
-  ;;     "UI_NEWCATA2_NAME_L" "Sodium Nitrate",
-  ;;     "UI_HEXITE_NAME_L" "Hexite",
-  ;;     "UI_COLD1_NAME_L" "Dioxite",
-  ;;     "UI_PLANTSUB_CREATUREPOOP_NAME" "FAECIUM",
-  ;;     "UI_SAND1_NAME" "SILICATE POWDER",
-  ;;     "UI_LAND1_NAME" "FERRITE DUST",
-  ;;     "UI_WATER1_NAME_L" "Salt",
-  ;;     "UI_PLANTSUB_CREATUREPOOP_NAME_L" "Faecium",
-  ;;     "TECH_FRAGMENT_NAME" "NANITE CLUSTER",
-  ;;     "UI_LAND2_NAME_L" "Pure Ferrite",
-  ;;     "UI_RED2_NAME" "CADMIUM",
-  ;;     "UI_LAND2_NAME" "PURE FERRITE",
-  ;;     "UI_EX_GREEN_NAME" "ACTIVATED EMERIL",
-  ;;     "UI_PLANTSUB_BARREN_NAME" "CACTUS FLESH",
-  ;;     "UI_ASTEROID1_NAME_L" "Silver",
-  ;;     "UI_PLANTSUB_LUSH_NAME" "STAR BULB",
-  ;;     "UI_NEWWATER2_NAME_L" "Chlorine",
-  ;;     "UI_QUICKSILVER_REWARD_NAME" "QUICKSILVER",
-  ;;     "UI_LAND1_NAME_L" "Ferrite Dust",
-  ;;     "UI_LAUNCHSUB2_NAME" "DEUTERIUM",
-  ;;     "UI_YELLOW2_NAME" "COPPER",
-  ;;     "UI_SUNGOLD_NAME" "LIQUID SUN",
-  ;;     "UI_PLANTSUB_SCORCHED_NAME" "SOLANIUM",
-  ;;     "UI_PLANTSUB_TOXIC_NAME" "FUNGAL MOULD",
-  ;;     "UI_PLANTSUB_WATER_NAME" "KELP SAC",
-  ;;     "UI_GAS_2_NAME" "RADON",
-  ;;     "UI_MAINTAIN_SUB5_NAME" "VISCOUS FLUIDS",
-  ;;     "TECH_FRAGMENT_NAME_L" "Nanite Cluster",
-  ;;     "UI_PLANTSUB_SCORCHED_NAME_L" "Solanium",
-  ;;     "UI_AIR1_NAME" "OXYGEN",
-  ;;     "UI_MAINTAIN_SUB3_NAME_L" "Rusted Metal",
-  ;;     "UI_STANDING_EXP" "KORVAX",
-  ;;     "UI_EX_BLUE_NAME" "ACTIVATED INDIUM",
-  ;;     "UI_NEWCATA2_NAME" "SODIUM NITRATE",
-  ;;     "UI_ROCKETFUEL_NAME_L" "Tritium",
-  ;;     "UI_PLANTSUB_SNOW_NAME" "FROST CRYSTAL",
-  ;;     "UI_SOULFRAG_NAME_L" "Fragmented Qualia",
-  ;;     "UI_STANDING_G_EXP" "EXPLORERS",
-  ;;     "UI_LAUNCHSUB_NAME" "DI-HYDROGEN",
-  ;;     "UI_EX_YELLOW_NAME_L" "Activated Copper",
-  ;;     "UI_SOULFRAG_NAME" "FRAGMENTED QUALIA",
-  ;;     "UI_GAS_3_NAME" "NITROGEN",
-  ;;     "UI_RADIO1_NAME" "URANIUM",
-  ;;     "SUB_DEADDRONE_NAME" "PUGNEUM",
-  ;;     "UI_COLD1_NAME" "DIOXITE",
-  ;;     "UI_CAVE1_NAME" "COBALT",
-  ;;     "UI_ASTEROID1_NAME" "SILVER",
-  ;;     "UI_LUSH1_NAME_L" "Paraffinium",
-  ;;     "UI_PLANTSUB_DEADCREATURE_NAME_L" "Mordite",
-  ;;     "UI_LAND3_NAME" "MAGNETISED FERRITE",
-  ;;     "UI_PLANTSUB_SNOW_NAME_L" "Frost Crystal",
-  ;;     "UI_PLANTSUB_BARREN_NAME_L" "Cactus Flesh",
-  ;;     "UI_MAINTAIN_SUB2_NAME_L" "Runaway Mould",
-  ;;     "UI_PLANTSUB_RADIO_NAME" "GAMMA ROOT",
-  ;;     "UI_GAS_1_NAME_L" "Sulphurine",
-  ;;     "UI_NANITES_REWARD_NAME" "NANITES",
-  ;;     "UI_STANDING_G_WAR" "MERCENARIES",
-  ;;     "UI_ASTEROID3_NAME" "PLATINUM",
-  ;;     "UI_CAVE2_NAME_L" "Ionised Cobalt",
-  ;;     "UI_HOT1_NAME_L" "Phosphorus",
-  ;;     "UI_FUEL_2_NAME" "CONDENSED CARBON",
-  ;;     "UI_RADIO1_NAME_L" "Uranium",
-  ;;     "UI_PLANTSUB_CAVE_NAME_L" "Marrow Bulb",
-  ;;     "UI_WATER2_NAME" "SODIUM",
-  ;;     "UI_ASTEROID2_NAME_L" "Gold",
-  ;;     "UI_GAS_3_NAME_L" "Nitrogen",
-  ;;     "UI_MAINTAIN_SUB2_NAME" "RUNAWAY MOULD",
-  ;;     "UI_GREEN2_NAME" "EMERIL",
-  ;;     "UI_MAINTAIN_SUB3_NAME" "RUSTED METAL",
-  ;;     "UI_RED2_NAME_L" "Cadmium",
-  ;;     "UI_ASTEROID3_NAME_L" "Platinum",
-  ;;     "UI_WATER1_NAME" "SALT",
-  ;;     "UI_LAUNCHSUB_NAME_L" "Di-hydrogen",
-  ;;     "UI_STANDING_WAR" "VY'KEEN",
-  ;;     "UI_PLANTSUB_WATER_NAME_L" "Kelp Sac",
-  ;;     "UI_GAS_1_NAME" "SULPHURINE",
-  ;;     "UI_YELLOW2_NAME_L" "Copper",
-  ;;     "UI_EX_BLUE_NAME_L" "Activated Indium",
-  ;;     "UI_CAVE1_NAME_L" "Cobalt",
-  ;;     "UI_HEXITE_NAME" "HEXITE",
-  ;;     "UI_PLANTSUB_TOXIC_NAME_L" "Fungal Mould"}
 
 
 (comment
@@ -654,6 +530,7 @@
   nil)
 
 (comment
+  (recipe-dictionary)
   (preload-dictionary))
 
 
@@ -711,7 +588,6 @@
 
         recipe-with-substance-name        (fn [recipe]
                                             (let [{:keys [result ingredients]} recipe
-                                                  recipe-id                    (:id result)
                                                   recipe-name                  (find-name result)
                                                   result-with-name             (assoc result :name recipe-name)
                                                   ingredient-transform         (fn [ingredient]
@@ -864,10 +740,7 @@
   (substances->ui)
   (substances)
   (product-dictionary)
-  (substance-dictionary))
-
-(get substance-dictionary "PLANT_CAVE")
-
-
-(search-for {"PLANT_CAVE" {:name "UI_PLANTSUB_CAVE_NAME", :id "PLANT_CAVE", :namelower "UI_PLANTSUB_CAVE_NAME_L"}}
-            [:name :namelower])
+  (substance-dictionary)
+  (get substance-dictionary "PLANT_CAVE")
+  (search-for {"PLANT_CAVE" {:name "UI_PLANTSUB_CAVE_NAME", :id "PLANT_CAVE", :namelower "UI_PLANTSUB_CAVE_NAME_L"}}
+              [:name :namelower]))

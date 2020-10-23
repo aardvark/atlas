@@ -1,40 +1,38 @@
 (ns net.fiendishplatypus.nms.language
   (:require [clojure.string]
             [clojure.java.io]
-            [clj-xpath.core :as xpath]))
-
-(defn xpath-quote-id 
-  [id]
-  (let [s id
-        q "\"'\""]
-    (if (clojure.string/includes? s "'")
-      (clojure.string/replace s "'" q)
-      s)))
+            [clojure.zip :as zip]
+            [clojure.data.xml :as xml]))
 
 
-;; xml parsing thorugh xpath
-(comment 
-  (with-open [rdr (clojure.java.io/reader "resources/nms/language-example.xml")]
-    (let [xml (line-seq rdr)
-          xml (clojure.string/join xml)]
-      (into {}
-            (map 
-             (fn [id] 
-               {id 
-                (:value 
-                 (xpath/$x:attrs 
-                  (str "//Property[@value='TkLocalisationEntry.xml']/Property[@name='Id' and @value='"  id "']/../Property[@name='English']/Property") xml))})
-             (map :value (xpath/$x:attrs* "//Property[@value='TkLocalisationEntry.xml']/Property[@name='Id']" xml)))))))
+(defn extract
+  [xs]
+  (apply hash-map
+         (for [x xs
+               :let [id (get-in x [:attrs :name])]
+               :when (or (=  id "Id") (= id "English"))]
+           (if (= id "Id")
+             (get-in x [:attrs :value])
+             (:value (:attrs (first (:content x))))))))
 
+
+(defn parse-zip
+  [z acc]
+  (if (nil? z) acc
+      (let [n (zip/node z)]
+        (if (= (zip/next z) z)
+          acc
+          (if (and (= :Property (:tag n))
+                   (= "TkLocalisationEntry.xml" (get-in n [:attrs :value] "")))
+            (recur (clojure.zip/right z) (merge (extract (:content n)) acc))
+            (recur (clojure.zip/next z) acc))))))
 
 (defn language
-  [xml id]
-  {id (:value 
-       (xpath/$x:attrs 
-        (str "//Property[@value='TkLocalisationEntry.xml']/Property[@name='Id' and @value=\""
-             id 
-             "\"]/../Property[@name='English']/Property")
-        xml))})
+  [xml _]
+  (parse-zip
+   (zip/xml-zip
+    (xml/parse-str xml))
+   {}))
 
 
 (def index-meta {:start-mark "TkLocalisationEntry.xml"

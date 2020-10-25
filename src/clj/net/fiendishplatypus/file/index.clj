@@ -84,26 +84,17 @@
             (fn [s] (= s "    </Property>"))) file))
 
 
-(defn load-record
+(defnp load-record
   "Given file `f` and index `record` returns full entry"
-  [f record]
-  (let [buffer (ByteBuffer/allocate (- (:end record) (:start record)))]
+  [^String f record]
+  (let [start-pos (:start record)
+        buffer (ByteBuffer/allocate (- (:end record) start-pos))]
     (with-open [file (RandomAccessFile. f "r")]
-      (.seek file (:start record))
+      (.seek file start-pos)
       (.read (.getChannel file) buffer)
       (.flip buffer)
       (String. (.array buffer) 
                (java.nio.charset.Charset/forName "UTF-8")))))
-
-
-(comment
-  "UTF-8 check"
-  (language/language
-   (load-record "D:\\NMSUnpacked\\LANGUAGE\\NMS_LOC1_ENGLISH.EXML" 
-                {:start 16635518, :size 16637854, :start? true, :end? true, :id "EXP_VY’KEEN", :end 16637854})
-   ""
-   (first (first {"EXP_VY’KEEN" "vy'keen"}))))
- 
 
 
 (defn translate
@@ -188,12 +179,6 @@
                        (transduce xf red '({:size 0})
                                   (line-seq rdr)))))))
 
-(comment
-  (profile {}
-           (dotimes [_ 5]
-             (file->records (first lang-files) (search-for-all-substances))
-             (file->records-tst (first lang-files) (search-for-all-substances)))))
-
 
 (defn lang-file-to-records 
   [file]
@@ -221,27 +206,20 @@
         (swap! dictionary-cache merge acc)
         (let [dict              (let [file       (first files)]
                                   (info "looking up keys in file" file)
-                                  (p :make-dict.process-file
-                                     (let [records (file->records file search-for)
-                                           _ (info "loaded" (count records) "records")
-                                           lang    (map
-                                                    (fn [record]
-                                                      (try
-                                                        (language/language
-                                                         (load-record file record)
-                                                         (:id record))
-                                                        (catch Exception _ (println "Error on loading file: " file
-                                                                                    ". Record: " record
-                                                                                    ". Xml: " (load-record file record)))))
-                                                    records)
-                                           _ (info "loaded" (count lang) "language maps")
-                        ;; here we are filtering full language dictionary for only 
-                        ;; keys we are searching for, ideally we may move this step 
-                        ;; to the record loading step and this may shave us some time
-                                           dict+ (into {}
-                                                       (filter (fn [x] (search-for (first (first  x)))))
-                                                       lang)]
-                                         dict+)))
+                                  (let [records (file->records file search-for)
+                                        _ (info "loaded" (count records) "records")
+                                        lang    (into {} (map
+                                                          (fn [record]
+                                                            (try
+                                                              (language/language
+                                                               (load-record file record)
+                                                               (:id record))
+                                                              (catch Exception _ (println "Error on loading file: " file
+                                                                                          ". Record: " record
+                                                                                          ". Xml: " (load-record file record))))))
+                                                      records)
+                                        _ (info "loaded" (count lang) "language maps")] 
+                                    lang))                                           
               search-for (apply disj search-for (keys dict))
               files (rest files)]
           (recur (merge acc dict) search-for files))))))

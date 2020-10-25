@@ -2,6 +2,8 @@
   (:require [clojure.java.io]
             [clojure.set]
             [clojure.string]
+            [clojure.data.xml]
+            [clojure.zip]
             [net.fiendishplatypus.nms.language :as language]
             [net.fiendishplatypus.nms.substance :as substance]
             [net.fiendishplatypus.nms.recipe :as recipe]
@@ -18,7 +20,7 @@
 
 
 (defn matcher
-  [re s]
+  [re ^String s]
   (let [match (re-find re s)]
     (if (coll? match) (second match) nil)))
 
@@ -154,6 +156,54 @@
         xf (mapcat f)]
     (into #{} xf to-enrich)))
 
+(defn id
+  [^String s]
+  (if
+    (or (clojure.string/includes? s "\"Id\"") (clojure.string/includes? s "\"ID\""))
+    (.substring s (+ 7 (clojure.string/index-of s "value=\""))
+                  (clojure.string/index-of s "\"" (+ 7 (clojure.string/index-of s "value=\""))))
+   nil))
+
+(defn file->records
+  [file search-for]
+  (let [start-mark "TkLocalisationEntry.xml"
+        start?     (fn [s] (and (not (nil? s))
+                                (clojure.string/includes? s start-mark)))
+        end?       (fn [s] (= s "    </Property>"))
+        
+        id         (fn [start? ^String s] (or (if start? start-mark nil)
+                                              (id s)))
+        xf         (map (fn [^String s]
+                          (let [start? (start? s)]
+                            {:size (+ 2 (alength (.getBytes s "UTF-8")))
+                             :start? start?
+                             :end?   (if start? false (end? s))
+                             :id     (id start? s)})))
+        red        (completing (partial reducer start?))]
+    (with-open [rdr (clojure.java.io/reader file)]
+      (sort-by (fn [a] (:start a)) <
+               (filter (fn [x]
+                         (and (not (nil? (:id x)))
+                              (search-for (:id x))))
+                       (transduce xf red '({:size 0})
+                                  (line-seq rdr)))))))
+
+(comment
+  (profile {}
+           (dotimes [_ 5]
+             (file->records (first lang-files) (search-for-all-substances))
+             (file->records-tst (first lang-files) (search-for-all-substances)))))
+
+
+(defn lang-file-to-records 
+  [file]
+  (with-open [rdr (clojure.java.io/reader file)] 
+    (language/parse-zip
+     (clojure.zip/xml-zip
+      (clojure.data.xml/parse rdr))
+     {})))
+
+
 ;; dictionary prototype
 (defn make-dictionary
   "Prepare dictionary for translation `input` words.
@@ -169,50 +219,29 @@
         ;; we either found all keys or we exhausted all files to search
         ;; so we update dictionary cache with found lines and return
         (swap! dictionary-cache merge acc)
-        (let [dict              (let [file       (first files)
-                                      start-mark (:start-mark language/index-meta)
-                                      start?     (fn [s] (clojure.string/includes? s start-mark))
-                                      end?       (:end? language/index-meta)
-                                      id         (fn [s] (or (if (start? s) start-mark nil)
-                                                             (matcher id-matcher s)))
-                                      xf         (map (fn [s]
-                                                        {:size   (+ 2 (count (.getBytes s "UTF-8")))
-                                                         :start? (start? s)
-                                                         :end?   (end? s)
-                                                         :id     (id s)}))
-                                      red        (completing (partial reducer start?))]
-
+        (let [dict              (let [file       (first files)]
                                   (info "looking up keys in file" file)
                                   (p :make-dict.process-file
-                                     (with-open [rdr (clojure.java.io/reader file)]
-                                       (let [records (p :make-dict-sort
-                                                        (sort-by (fn [a] (:start a)) <
-                                                                 (p :make-dict-filter
-                                                                    (filter (fn [x]
-                                                                              (and (not (nil? (:id x)))
-                                                                                   (search-for (:id x))))
-                                                                            (p :make-dict-transduce
-                                                                               (transduce xf red '({:size 0})
-                                                                                          (line-seq rdr)))))))
-                                             _ (info "loaded" (count records) "records")
-                                             lang    (map
-                                                      (fn [record]
-                                                        (try
-                                                          (language/language
-                                                           (load-record file record)
-                                                           (:id record))
-                                                          (catch Exception _ (println "Error on loading file: " file
-                                                                                      ". Record: " record
-                                                                                      ". Xml: " (load-record file record)))))
-                                                      records)
-                                             _ (info "loaded" (count lang) "language maps")
+                                     (let [records (file->records file search-for)
+                                           _ (info "loaded" (count records) "records")
+                                           lang    (map
+                                                    (fn [record]
+                                                      (try
+                                                        (language/language
+                                                         (load-record file record)
+                                                         (:id record))
+                                                        (catch Exception _ (println "Error on loading file: " file
+                                                                                    ". Record: " record
+                                                                                    ". Xml: " (load-record file record)))))
+                                                    records)
+                                           _ (info "loaded" (count lang) "language maps")
                         ;; here we are filtering full language dictionary for only 
                         ;; keys we are searching for, ideally we may move this step 
                         ;; to the record loading step and this may shave us some time
-                                             dict+ (into {}
-                                                         (filter (fn [x] (search-for (first (first  x)))))
-                                                         lang)]
-                                         dict+))))
+                                           dict+ (into {}
+                                                       (filter (fn [x] (search-for (first (first  x)))))
+                                                       lang)]
+                                         dict+)))
               search-for (apply disj search-for (keys dict))
               files (rest files)]
           (recur (merge acc dict) search-for files))))))

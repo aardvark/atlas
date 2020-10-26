@@ -587,6 +587,6 @@
   (substances)
   (product-dictionary)
   (substance-dictionary)
-  (get substance-dictionary "PLANT_CAVE")
+  (get (substance-dictionary) "FOOD_ICE_NAME_L")
   (search-for {"PLANT_CAVE" {:name "UI_PLANTSUB_CAVE_NAME", :id "PLANT_CAVE", :namelower "UI_PLANTSUB_CAVE_NAME_L"}}
               [:name :namelower]))

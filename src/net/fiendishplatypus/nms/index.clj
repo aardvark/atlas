@@ -1,4 +1,4 @@
-(ns net.fiendishplatypus.file.index
+(ns net.fiendishplatypus.nms.index
   (:require [clojure.java.io]
             [clojure.set]
             [clojure.string]
@@ -14,7 +14,7 @@
                      logf tracef debugf infof warnf errorf fatalf reportf
                      spy get-env]]
             [taoensso.tufte :as tufte :refer (defnp p profiled profile)])
-  
+
   (:import [java.io RandomAccessFile]
            [java.nio ByteBuffer]))
 
@@ -93,7 +93,7 @@
       (.seek file start-pos)
       (.read (.getChannel file) buffer)
       (.flip buffer)
-      (String. (.array buffer) 
+      (String. (.array buffer)
                (java.nio.charset.Charset/forName "UTF-8")))))
 
 
@@ -150,10 +150,10 @@
 (defn id
   [^String s]
   (if
-    (or (clojure.string/includes? s "\"Id\"") (clojure.string/includes? s "\"ID\""))
+   (or (clojure.string/includes? s "\"Id\"") (clojure.string/includes? s "\"ID\""))
     (.substring s (+ 7 (clojure.string/index-of s "value=\""))
-                  (clojure.string/index-of s "\"" (+ 7 (clojure.string/index-of s "value=\""))))
-   nil))
+                (clojure.string/index-of s "\"" (+ 7 (clojure.string/index-of s "value=\""))))
+    nil))
 
 (defn file->records
   [file search-for]
@@ -161,7 +161,7 @@
         start?     (fn [s] (and (not (nil? s))
                                 (clojure.string/includes? s start-mark)))
         end?       (fn [s] (= s "    </Property>"))
-        
+
         id         (fn [start? ^String s] (or (if start? start-mark nil)
                                               (id s)))
         xf         (map (fn [^String s]
@@ -180,14 +180,15 @@
                                   (line-seq rdr)))))))
 
 
-(defn lang-file-to-records 
-  [file]
-  (with-open [rdr (clojure.java.io/reader file)] 
-    (language/parse-zip
-     (clojure.zip/xml-zip
-      (clojure.data.xml/parse rdr))
-     {})))
-
+(defn load-lang-record
+  [file record]
+  (try
+    (language/language
+     (load-record file record)
+     (:id record))
+    (catch Exception _ (println "Error on loading file: " file
+                                ". Record: " record
+                                ". Xml: " (load-record file record)))))
 
 ;; dictionary prototype
 (defn make-dictionary
@@ -204,22 +205,15 @@
         ;; we either found all keys or we exhausted all files to search
         ;; so we update dictionary cache with found lines and return
         (swap! dictionary-cache merge acc)
-        (let [dict              (let [file       (first files)]
+        (let [dict              (let [file (first files)]
                                   (info "looking up keys in file" file)
                                   (let [records (file->records file search-for)
                                         _ (info "loaded" (count records) "records")
-                                        lang    (into {} (map
-                                                          (fn [record]
-                                                            (try
-                                                              (language/language
-                                                               (load-record file record)
-                                                               (:id record))
-                                                              (catch Exception _ (println "Error on loading file: " file
-                                                                                          ". Record: " record
-                                                                                          ". Xml: " (load-record file record))))))
-                                                      records)
-                                        _ (info "loaded" (count lang) "language maps")] 
-                                    lang))                                           
+                                        lang (into {}
+                                                   (map (partial load-lang-record file))
+                                                   records)
+                                        _ (info "loaded" (count lang) "language maps")]
+                                    lang))
               search-for (apply disj search-for (keys dict))
               files (rest files)]
           (recur (merge acc dict) search-for files))))))
@@ -253,7 +247,7 @@
    (translate (substance-dictionary) (substance/from-file index load-record) [:name :namelower])))
    ;; => {"WAR_STANDING_UP" {:name "VY'KEEN", :id "WAR_STANDING_UP", :namelower "VY'KEEN"},
 
-(comment 
+(comment
   (recipe/from-file index load-record))
 ;; => {"RECIPE_1"
 ;;     {:id "RECIPE_1",
@@ -275,7 +269,7 @@
    (make-dictionary
     (search-for (recipe/from-file index load-record) [:name])
     lang-files)))
- 
+
 ;; linking substance with recipe
 (comment
   (time
@@ -299,9 +293,9 @@
   (time
    (recipe->substance-link
     (get (translate @dictionary-cache (recipe/from-file index load-record) [:name])
-         "RECIPE_2"))))
+         "RECIPE_2")))
   ;; => {"FOOD_P_STELLAR" {:as-result ["RECIPE_2"]}, "STELLAR2" {:as-ingredient ["RECIPE_2"]}}
-
+  ((second (recipe/from-file index load-record))))
 
 (defn substance-recipes-table
   [recipes]
@@ -462,7 +456,9 @@
          (filter (fn [x] (not (and (empty? (:as-ingredient x))
                                    (empty? (:as-result x)))))
                  (map get-substance
-                      (vals (substances)))))))
+                      (vals (substances))))))
+  
+  (get-substance (first (substances))))
 
 
 (defn by-key
@@ -584,6 +580,7 @@
   (reset! dictionary-cache {})
   (preload-dictionary)
   (substances->ui)
+  (substance-db)
   (substances)
   (product-dictionary)
   (substance-dictionary)

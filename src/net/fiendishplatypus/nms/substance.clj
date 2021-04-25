@@ -1,7 +1,8 @@
 (ns net.fiendishplatypus.nms.substance
   (:require [clojure.data.xml :as xml]
             [clojure.java.io]
-            [clojure.string]))
+            [clojure.string]
+            [net.fiendishplatypus.nms.setup :as setup]))
 
 
 (defn parse-substance 
@@ -12,12 +13,8 @@
                 (fn [{:keys [name value]}]
                   {(keyword (clojure.string/lower-case name)) value})
                 (map :attrs (:content entity))))]
-   {(:id res) (select-keys res [:name :id :namelower])}))
+   {(:id res) (select-keys res [:name :id :namelower :basevalue])}))
 
-
-(comment 
-  (parse-substance substance))
-;; => {"FUEL1" {:name "UI_FUEL_1_NAME", :id "FUEL1", :namelower "UI_FUEL_1_NAME_L"}}
 
 (defn value->key [m k]
   (keyword (clojure.string/lower-case (k m))))
@@ -60,7 +57,7 @@
 
 (def index-meta {:start-mark "GcRealitySubstanceData.xml"
                  :end? (fn [s] (= s "    </Property>"))
-                 :file "D:\\NMSProjects\\Notepad\\METADATA\\REALITY\\TABLES\\NMS_REALITY_GCSUBSTANCETABLE.EXML"})
+                 :file (.getPath (setup/substance-file!))})
 
 
 (defn index

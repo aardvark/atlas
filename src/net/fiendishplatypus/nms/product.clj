@@ -1,12 +1,13 @@
 (ns net.fiendishplatypus.nms.product
   (:require [clojure.string]
             [clojure.java.io]
-            [clojure.data.xml :as xml]))
+            [clojure.data.xml :as xml]
+            [net.fiendishplatypus.nms.setup :as setup]))
 
 
 (def index-meta {:start-mark "GcProductData.xml"
                  :end? (fn [s] (= s "    </Property>"))
-                 :file "D:\\NMSProjects\\Notepad\\METADATA\\REALITY\\TABLES\\NMS_REALITY_GCPRODUCTTABLE.EXML"})
+                 :file (.getPath (setup/product-file!))})
 
 
 (defn parse [m]

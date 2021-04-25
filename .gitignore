@@ -17,3 +17,5 @@ pom.xml.asc
 .shadow-cljs/
 resources/public/js/
 .calva/*
+.clj-kondo/*
+.lsp/*

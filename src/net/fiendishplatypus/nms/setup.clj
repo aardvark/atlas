@@ -27,13 +27,22 @@
                       :type :string}})
 
 
-(cfg/populate-from-map
- {:lang-mbin-dir "D:\\NMSUnpacked\\LANGUAGE"
-  :mbin-compiler-dir "C:\\Projects\\NoManSkyMods"
-  :substance-filename "NMS_REALITY_GCSUBSTANCETABLE.MBIN"
-  :substance-mbin-dir "D:\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
-  :product-mbin-dir "D:\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
-  :product-filename "NMS_REALITY_GCPRODUCTTABLE.MBIN"})
+(defn init-config []
+  (let [f (clojure.java.io/file (System/getenv "LOCALAPPDATA")
+                                "nms-atlas-converter.config.edn")]
+    (if (.exists f) (cfg/populate-from-file f)
+        (cfg/populate-from-map
+         {:lang-mbin-dir "C:\\Projects\\NMSUnpacked\\LANGUAGE"
+          :mbin-compiler-dir "C:\\Projects\\NoManSkyMods"
+          :substance-filename "NMS_REALITY_GCSUBSTANCETABLE.MBIN"
+          :substance-mbin-dir "C:\\Projects\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
+          :product-mbin-dir "C:\\Projects\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
+          :product-filename "NMS_REALITY_GCPRODUCTTABLE.MBIN"
+          :recipe-mbin-dir "C:\\Projects\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
+          :recipe-filename "NMS_REALITY_GCRECIPETABLE.MBIN"}))))
+ 
+
+
 
 ;; MBIN file lookup operation
 
@@ -47,6 +56,10 @@
   (clojure.java.io/file (cfg/get :substance-mbin-dir) 
                         (cfg/get :substance-filename)))
 
+(defn recipe-mbin-file
+  []
+  (clojure.java.io/file (cfg/get :recipe-mbin-dir)
+                        (cfg/get :recipe-filename)))
 
 (defn engilsh-lang-file?
   [name]
@@ -223,6 +236,8 @@
 
 ;; MBIN decompiler invocation
 (defn exml
+  "given a mbin file `file` run MBINComplier on it to get a EXML file 
+   and return such EXML file back"
   [file]
   (info "Running MBIN -> EXML conversion for " (.toString (.toPath file)))
   (let [path-str (.toString (.toPath file))
@@ -301,9 +316,23 @@
          file-and-digest)
    (product-mbin-file)))
 
+(defn recipe-file!
+  "Take MBIN product file from location based on configuration
+   and produces EXML file. 
+   Will recreate EXML file from scratch running full MBIN -> EXML
+   transfromation step."
+  []
+  ((comp #(:file %)
+         mbin->exml
+         file-and-digest)
+   (recipe-mbin-file)))
+
+(init-config)
+
 (comment
   (language-files!)
   (substance-file!)
   (product-file!)
+  (recipe-file!)
   @run-cache)
 

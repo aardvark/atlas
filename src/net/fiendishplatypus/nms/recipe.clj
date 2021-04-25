@@ -1,6 +1,7 @@
 (ns net.fiendishplatypus.nms.recipe
   (:require [clojure.data.xml :as xml]
-            [clojure.java.io]))
+            [clojure.java.io]
+            [net.fiendishplatypus.nms.setup :as setup]))
             
 
 (def ingredient-example
@@ -157,7 +158,7 @@
 
 (def index-meta {:start-mark "GcRefinerRecipe.xml"
                  :end? (fn [s] (= s "    </Property>"))
-                 :file "D:\\NMSProjects\\Notepad\\METADATA\\REALITY\\TABLES\\NMS_REALITY_GCRECIPETABLE.EXML"})
+                 :file (.getPath (setup/recipe-file!))})
 
 
 (defn index

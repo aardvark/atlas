@@ -10,10 +10,8 @@
             [net.fiendishplatypus.nms.product :as product]
             [net.fiendishplatypus.nms.setup :as setup]
             [taoensso.timbre :as timbre
-             :refer [log  trace  debug  info  warn  error  fatal  report
-                     logf tracef debugf infof warnf errorf fatalf reportf
-                     spy get-env]]
-            [taoensso.tufte :as tufte :refer (defnp p profiled profile)])
+             :refer [info]]
+            [taoensso.tufte :as tufte :refer (defnp p profile)])
 
   (:import [java.io RandomAccessFile]
            [java.nio ByteBuffer]))
@@ -84,7 +82,7 @@
             (fn [s] (= s "    </Property>"))) file))
 
 
-(defnp load-record
+(defn load-record
   "Given file `f` and index `record` returns full entry"
   [^String f record]
   (let [start-pos (:start record)
@@ -126,7 +124,7 @@
                       :namelower "UI_ASTEROID3_NAME_L"}})
 
 (def lang-files
-  (setup/language-files!))
+  (map #(.getPath %) (setup/language-files!)))
 
 
 (def dictionary-cache
@@ -151,9 +149,13 @@
   [^String s]
   (if
    (or (clojure.string/includes? s "\"Id\"") (clojure.string/includes? s "\"ID\""))
-    (.substring s (+ 7 (clojure.string/index-of s "value=\""))
-                (clojure.string/index-of s "\"" (+ 7 (clojure.string/index-of s "value=\""))))
-    nil))
+   (.substring s (+ 7 (clojure.string/index-of s "value=\""))
+               (clojure.string/index-of s "\"" (+ 7 (clojure.string/index-of s "value=\""))))
+   nil))
+
+(comment 
+  ;; => "SCAN_BROKEN"
+  (id "      <Property name=\"Id\" value=\"SCAN_BROKEN\" />"))
 
 (defn file->records
   [file search-for]
@@ -282,7 +284,7 @@
   ;;     :result {:id "FOOD_P_STELLAR", :type "Product", :amount "1"},
   ;;     :ingredients ({:id "STELLAR2", :type "Substance", :amount "1"})}
 
-(defn recipe->substance-link
+(defnp recipe->substance-link
   [recipe]
   (let [{:keys [id result ingredients]} recipe]
     (into {}
@@ -297,7 +299,7 @@
   ;; => {"FOOD_P_STELLAR" {:as-result ["RECIPE_2"]}, "STELLAR2" {:as-ingredient ["RECIPE_2"]}}
   ((second (recipe/from-file index load-record))))
 
-(defn substance-recipes-table
+(defnp substance-recipes-table
   [recipes]
   (apply merge-with (fn [a b]
                       {:as-result (concat (:as-result a) (:as-result b))
@@ -316,7 +318,7 @@
 ;;     "STELLAR2" {:as-result (), :as-ingredient ("RECIPE_2" "RECIPE_3")}}
 
 
-(defn add-recipes-to-substance
+(defnp add-recipes-to-substance
   [substance lookup-table]
   (merge substance (get lookup-table (:id substance))))
 
@@ -367,6 +369,7 @@
 
 (comment
   (recipe-dictionary)
+  (first (product-dictionary))
   (reset! dictionary-cache {})
   (tufte/add-basic-println-handler! {})
   (profile {}
@@ -380,7 +383,7 @@
 (defonce substance-cache (atom {}))
 
 
-(defn substances
+(defnp substances
   []
   (if (empty? @substance-cache)
     (reset! substance-cache
@@ -389,7 +392,7 @@
 
 (defonce recipes-cache (atom {}))
 
-(defn recipes
+(defnp recipes
   []
   (if (empty? @recipes-cache)
     (reset! recipes-cache
@@ -398,7 +401,7 @@
 
 (defonce products-cache (atom {}))
 
-(defn products
+(defnp products
   []
   (if (empty? @products-cache)
     (reset! products-cache
@@ -414,7 +417,7 @@
 (comment (reset-caches))
 
 
-(defn get-substance
+(defnp get-substance
   [substance]
   (let [substances                        (substances)
         recipes                           (recipes)
@@ -452,11 +455,14 @@
 
 (comment
   (time
-   (take 56
+   (take 2
          (filter (fn [x] (not (and (empty? (:as-ingredient x))
                                    (empty? (:as-result x)))))
                  (map get-substance
                       (vals (substances))))))
+  
+  (get-substance
+       (nth (vals (substances)) 2))
   
   (get-substance (first (substances))))
 
@@ -472,6 +478,14 @@
                                      (empty? (:as-result x)))))
                    (map get-substance
                         (vals (merge (substances) (products)))))))
+
+(comment
+  (reset! dictionary-cache {})
+  (preload-dictionary)
+  (tufte/add-basic-println-handler! {})
+  (profile {}
+           (dotimes [_ 5]
+             (substances->ui))))
 
 
 (defn list-for-ui
@@ -511,10 +525,9 @@
                 (concat
                  (list-for-ui :as-result)
                  (list-for-ui :as-ingredient)))))
-
-;;(get (name->id) "Wriggling Jam")
-;;
-;;(spit "resources/public/nameToIdLookup.edn" (pr-str (name->id)))
+(comment
+  (get substance-db (get (name->id) "Salty Juice"))
+  (spit "resources/public/nameToIdLookup.edn" (pr-str (name->id))))
 
 (defn substance-db
   []
@@ -580,10 +593,14 @@
   (reset! dictionary-cache {})
   (preload-dictionary)
   (substances->ui)
-  (substance-db)
-  (substances)
-  (product-dictionary)
-  (substance-dictionary)
+  (get (substance-db) "FOOD_J_SALT")
+  (get (substance-db) (get (name->id) "Gold"))
+  (:as-ingredient (get (substance-db) (get (name->id) "Platinum")))
+  ;; Paraffinium -> Nitrogen -> Star Bulb
+  ;; Paraffinium -> Oxygen -> Star Bulb
+  ;; Oxygen -> Paraffinium -> Star Bulb
+  ;; Nitrogen -> Paraffinium -> Star Bulb
+  
   (get (substance-dictionary) "FOOD_ICE_NAME_L")
   (search-for {"PLANT_CAVE" {:name "UI_PLANTSUB_CAVE_NAME", :id "PLANT_CAVE", :namelower "UI_PLANTSUB_CAVE_NAME_L"}}
               [:name :namelower]))

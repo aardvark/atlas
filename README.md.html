@@ -14,22 +14,30 @@ then produce a dictionary for given language files.
 *******************************************************
 
 ## Parsing transformations
-### Language files
 
-Produce a list of entity maps ready for use for dictionary lookups
+### Language
 
+Language files contains a Id -> String lookup logic. 
+Almost all other object reference those language ids for readable UI names.
+
+When we parse a EXML definition we collect mapping of Id -> String and expose
+them as on big dictionary to use for lookup. 
+
+Every language file get its own "dictionary"
+
+<script type="preformatted">
 ******************************************************************
 *                                                                                       
-*  .-------+-------------------------------------------.                                 
-*  | EXML  |                                           |                                 
-*  +-------'                                           |                                 
-*  |                                                   |                                 
-*  | < Data template="TkLocalisationTable" >           |
-*  |   < Property name="Table" >                       |
-*  |     < Property value="TkLocalisationEntry.xml" >  |
-*  |       < Property name="Id" value="SCAN_BROKEN" /> |                                                                           
-*  |       <...>                                       |                                    
-*  '------------------------+--------------------------'                             
+*  .-------+-----------------------------------------.                                 
+*  | EXML  |                                         |                                 
+*  +-------'                                         |                                 
+*  |                                                 |                                 
+*  | <Data template="TkLocalisationTable">           |
+*  |   <Property name="Table">                       |
+*  |     <Property value="TkLocalisationEntry.xml">  |
+*  |       <Property name="Id" value="SCAN_BROKEN"/> |                                                                           
+*  |       <...>                                     |                                    
+*  '------------------------+------------------------'                             
 *                           |                                                         
 *                           v                                                       
 *  .------+-----------------+--------------------------.                             
@@ -38,6 +46,126 @@ Produce a list of entity maps ready for use for dictionary lookups
 *  | {"SCAN_BROKEN" "Scanner is critically damaged"}   |
 *  '---------------------------------------------------'
 *                                                       
-*******************************************************************
+******************************************************************
+</script>
+
+### Substance
+
+Substance files contain a primal ingredients of NMS universe. 
+Basic elements like Carbon or Slime are "Substance".
+
+Substances are used as ingredients to the multiple recipes, so when 
+we do parsing we capture substance id and name ids that are linked 
+to the language files
+
+******************************************************************
+*                                                                                       
+*  .-------+-------------------------------------------------.                           
+*  | EXML  |                                                 |                           
+*  +-------'                                                 |                           
+*  |                                                         |                           
+*  | < Property value="GcRealitySubstanceData.xml">          |
+*  |   < Property name="Name" value="UI_FUEL_1_NAME" />      |
+*  |   < Property name="NameLower" value="UI_FUEL_1_NAME_L"/>|
+*  |   < Property name="ID" value="FUEL1" />                 |
+*  |   < ... >                                               |
+*  '------------------------+--------------------------------'                       
+*                           |                                                         
+*                           v                                                       
+*  .------+-----------------+-----------------.                           
+*  | EDN  |                                   |                             
+*  +------'                                   |                                        
+*  | {"FUEL1" {:name "UI_FUEL_1_NAME",        |
+*  |           :id "FUEL1",                   |
+*  |           :namelower "UI_FUEL_1_NAME_L"}}|
+*  '------------------------------------------'            
+*                                                       
+******************************************************************
+
+
+### Product 
+
+Product files contain all NMS entities that are not substances.
+
+Again, as we mostly interested in crafting information for those we 
+only collect ID and naming information and put it to the maps for
+future lookup.
+
+******************************************************************
+*                                                                                       
+*  .-------+-------------------------------------------------.                           
+*  | EXML  |                                                 |                           
+*  +-------'                                                 |                           
+*  |                                                         |                           
+*  |  < Property value="GcProductData.xml" >                 |
+*  |    < Property name="Id" value="CASING" />               |
+*  |    < Property name="Name" value="CASING_NAME" />        |
+*  |    < Property name="NameLower" value="CASING_NAME_L" /> |
+*  |    < ... >                                              |
+*  '------------------------+--------------------------------'                       
+*                           |                                                         
+*                           v                                                       
+*  .------+-----------------+----------------.                           
+*  | EDN  |                                  |                             
+*  +------'                                  |                                        
+*  | {"CASING" {:id "CASING",                |          
+*  |            :name "CASING_NAME",         |          
+*  |            :namelower "CASING_NAME_L"}} |          
+*  '-----------------------------------------'            
+*                                                       
+******************************************************************
+
+### Recipe
+
+Recipe files contain information about crafted recipes. 
+Input, output, how much time it would take to craft recipe and so on. 
+
+Here we interested in almost all of this infromation so we take almost all of it 
+to the structure
+
+<script type="preformatted">
+**************************************************************************
+*                                                                                       
+*  .-------+---------------------------------------------------------.                  
+*  | EXML  |                                                         |                  
+*  +-------'                                                         |                  
+*  | <Property value="GcRefinerRecipe.xml">                          |
+*  |     <Property name="Id" value="REFINERECIPE_14"/>               |            
+*  |     <Property name="Name" value="RECIPE_OXYGEN"/>               |            
+*  |     <Property name="TimeToMake" value="20"/>                    |       
+*  |     <Property name="Cooking" value="False"/>                    |       
+*  |     <Property name="Result" value="GcRefinerRecipeElement.xml"> |                         
+*  |       <Property name="Id" value="FUEL1"/>                       |    
+*  |       <Property name="Type" value="GcInventoryType.xml">        |                  
+*  |         <Property name="InventoryType" value="Substance"/>      |                     
+*  |       </Property>                                               |
+*  |       <Property name="Amount" value="1"/>                       |   
+*  |     </Property>                                                 |
+*  |     <Property name="Ingredients">                               |
+*  |       <Property value="GcRefinerRecipeElement.xml">             |            
+*  |         <Property name="Id" value="OXYGEN" />                   |      
+*  |         <Property name="Type" value="GcInventoryType.xml">      |                   
+*  |           <Property name="InventoryType" value="Substance"/>    |                      
+*  |         </Property>                                             |
+*  |         <Property name="Amount" value="1"/>                     |     
+*  |       </Property>                                               |
+*  |     </Property>                                                 |
+*  |   </Property>                                                   |
+*  '------------------------+----------------------------------------'            
+*                           |                                                         
+*                           v                                                       
+*  .------+-----------------+----------------------------------------.  
+*  | EDN  |                                                          |      
+*  +------'                                                          |                 
+*  | {:id "REFINERECIPE_14",                                         |
+*  |  :name "RECIPE_OXYGEN",                                         |
+*  |  :time-to-make "20",                                            |
+*  |  :cooking false,                                                |
+*  |  :result {:id "FUEL1", :type "Substance", :amount "1"},         |
+*  |  :ingredients ({:id "OXYGEN", :type "Substance", :amount "1"})} |
+*  '-----------------------------------------------------------------'            
+*                                                       
+***************************************************************************
+</script>
 
 <!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style><script src="markdeep.min.js" charset="utf-8"></script><script src="https://morgan3d.github.io/markdeep/latest/markdeep.min.js" charset="utf-8"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>

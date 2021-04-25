@@ -3,7 +3,10 @@
    MBINCompiler process.
    Should be mostly used to rerun dictonaries creation when new
    version of NMS is released and recipes data can be changed.
-   Invoking EXML files will run a full MBIN -> EXML transformation steps."
+   Invoking EXML files will run a full MBIN -> EXML transformation steps.
+   
+   Input (MBIN) output (EXML) file pairs are checked by hash to skip 
+   MBINComplier calls when not needed."
   (:require [clojure.java.io]
             [clojure.java.shell]
             [clojure.string]
@@ -32,7 +35,9 @@
                                 "nms-atlas-converter.config.edn")]
     (if (.exists f) (cfg/populate-from-file f)
         (cfg/populate-from-map
-         {:lang-mbin-dir "C:\\Projects\\NMSUnpacked\\LANGUAGE"
+        ;;  TODO: Pass root from parameters "net.fiendishplatypus.nms.setup.unpacked.root"
+         {:nms-unpacked-root "C:\\Projects\\NMSUnpacked"
+          :lang-mbin-dir "C:\\Projects\\NMSUnpacked\\LANGUAGE"
           :mbin-compiler-dir "C:\\Projects\\NoManSkyMods"
           :substance-filename "NMS_REALITY_GCSUBSTANCETABLE.MBIN"
           :substance-mbin-dir "C:\\Projects\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
@@ -125,6 +130,9 @@
    :mbin {:file :file :digest :string}
    :exml {:file :file :digest :string}})
 
+(def cache-file
+  (clojure.java.io/file (System/getenv "LOCALAPPDATA") "nms-atlas-converter.cache"))
+
 (defn- load-edn
   "Load edn from an io/reader source (filename or io/resource)."
   [source]
@@ -140,19 +148,15 @@
 
 (defn- preload-cache
   []
-  (let [cache-file
-        (clojure.java.io/file (System/getenv "LOCALAPPDATA") "nms-atlas-converter.cache")]
-    (if (.exists cache-file)
-      (do (info "Found existing cache file:" cache-file)
-          (load-edn cache-file))
-      {})))
+  (if (.exists cache-file)
+    (do (info "Found existing cache file:" cache-file)
+        (load-edn cache-file))
+    {}))
 
 
 (defn persist-cache
   [run-cache]
-  (let [cache-file
-        (clojure.java.io/file (System/getenv "LOCALAPPDATA") "nms-atlas-converter.cache")
-        run-cache (letfn [(to-path [x [k v]]
+  (let [run-cache (letfn [(to-path [x [k v]]
                             [k (update-in v
                                           [x :file]
                                           (fn [x]

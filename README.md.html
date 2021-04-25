@@ -1,0 +1,43 @@
+# NMS EXML parsing utility
+
+## Functionality
+
+Takes a unpacked NMS MBIN files transform them to the exml using MbinDecompiler [link-here], 
+then produce a dictionary for given language files.
+
+*******************************************************
+*                                                                                                        
+*  .------.    .--------------.    .------.          
+*  | MBIN +--->| MBINComplier +--->| EXML |         
+*  '------'    '--------------'    '------'          
+*                                                     
+*******************************************************
+
+## Parsing transformations
+### Language files
+
+Produce a list of entity maps ready for use for dictionary lookups
+
+******************************************************************
+*                                                                                       
+*  .-------+-------------------------------------------.                                 
+*  | EXML  |                                           |                                 
+*  +-------'                                           |                                 
+*  |                                                   |                                 
+*  | < Data template="TkLocalisationTable" >           |
+*  |   < Property name="Table" >                       |
+*  |     < Property value="TkLocalisationEntry.xml" >  |
+*  |       < Property name="Id" value="SCAN_BROKEN" /> |                                                                           
+*  |       <...>                                       |                                    
+*  '------------------------+--------------------------'                             
+*                           |                                                         
+*                           v                                                       
+*  .------+-----------------+--------------------------.                             
+*  | EDN  |                                            |                             
+*  +------'                                            |                              
+*  | {"SCAN_BROKEN" "Scanner is critically damaged"}   |
+*  '---------------------------------------------------'
+*                                                       
+*******************************************************************
+
+<!-- Markdeep: --><style class="fallback">body{visibility:hidden;white-space:pre;font-family:monospace}</style><script src="markdeep.min.js" charset="utf-8"></script><script src="https://morgan3d.github.io/markdeep/latest/markdeep.min.js" charset="utf-8"></script><script>window.alreadyProcessedMarkdeep||(document.body.style.visibility="visible")</script>

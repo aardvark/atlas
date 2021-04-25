@@ -1,5 +1,5 @@
-(defproject nms-recipe-parser "0.1.0-SNAPSHOT"
-  :description "NMS recipe database parser"
+(defproject nms-exml-parser "0.1.0-SNAPSHOT"
+  :description "NMS exml parser"
   :url "FIXME: add a correct url"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v20.html"}

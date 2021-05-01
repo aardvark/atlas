@@ -17,6 +17,9 @@
 
 
 (defn parse-zip
+  "Given xml zipper `z` and accumulator `acc` traverse zipper
+   collect all \"TkLocalisationEntry.xml\" values and return them
+  "
   [z acc]
   (if (nil? z) acc
       (let [n (zip/node z)]

@@ -4,8 +4,8 @@
    Should be mostly used to rerun dictonaries creation when new
    version of NMS is released and recipes data can be changed.
    Invoking EXML files will run a full MBIN -> EXML transformation steps.
-   
-   Input (MBIN) output (EXML) file pairs are checked by hash to skip 
+
+   Input (MBIN) output (EXML) file pairs are checked by hash to skip
    MBINComplier calls when not needed."
   (:require [clojure.java.io]
             [clojure.java.shell]
@@ -17,17 +17,22 @@
                      logf tracef debugf infof warnf errorf fatalf reportf
                      spy get-env]]))
 
-;; Configuration 
+;; Configuration
 
 (cfg/define
-  {:lang-mbin-dir {:description "Directory where MBIN LANGUAGE files are located"
-                   :type :string}
-   :mbin-compiler-dir {:description "Directory where MBINCompiler.exe can be found"
+  {:mbin-compiler-dir {:description "Directory where MBINCompiler.exe can be found"
                        :type :string}
+   :nms-unpacked-root {:description "Directory root for NMS unpacked files"
+                       :type :string}
+
+   :lang-mbin-dir {:description "Directory where MBIN LANGUAGE files are located"
+                   :type :string}
    :substance-mbin-dir {:description "Directory where NMS_REALITY_GCSUBSTANCETABLE.MBIN can be found"
                         :type :string}
    :product-mbin-dir {:description "Directory where NMS_REALITY_GCPRODUCTTABLE.MBIN can be found"
-                      :type :string}})
+                      :type :string}
+   :recipe-mbin-dir {:description "Directory where NMS_REALITY_GCRECIPETABLE.MBIN be found"
+                     :type :string}})
 
 
 (defn init-config []
@@ -36,16 +41,21 @@
     (if (.exists f) (cfg/populate-from-file f)
         (cfg/populate-from-map
         ;;  TODO: Pass root from parameters "net.fiendishplatypus.nms.setup.unpacked.root"
-         {:nms-unpacked-root "C:\\Projects\\NMSUnpacked"
-          :lang-mbin-dir "C:\\Projects\\NMSUnpacked\\LANGUAGE"
+         {
           :mbin-compiler-dir "C:\\Projects\\NoManSkyMods"
-          :substance-filename "NMS_REALITY_GCSUBSTANCETABLE.MBIN"
+
+          :nms-unpacked-root "C:\\Projects\\NMSUnpacked"
+          :lang-mbin-dir "C:\\Projects\\NMSUnpacked\\LANGUAGE"
+
           :substance-mbin-dir "C:\\Projects\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
+          :substance-filename "NMS_REALITY_GCSUBSTANCETABLE.MBIN"
+
           :product-mbin-dir "C:\\Projects\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
           :product-filename "NMS_REALITY_GCPRODUCTTABLE.MBIN"
+
           :recipe-mbin-dir "C:\\Projects\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
           :recipe-filename "NMS_REALITY_GCRECIPETABLE.MBIN"}))))
- 
+
 
 
 
@@ -58,7 +68,7 @@
 
 (defn substance-mbin-file
   []
-  (clojure.java.io/file (cfg/get :substance-mbin-dir) 
+  (clojure.java.io/file (cfg/get :substance-mbin-dir)
                         (cfg/get :substance-filename)))
 
 (defn recipe-mbin-file
@@ -114,9 +124,9 @@
 ;; saving map of :filename and :sha256sum should be enough
 ;; :mbin-file and :exml-file parameters can be always added as they
 ;; appear in the processing step
-;; 
+;;
 ;; How this should work?
-;; 
+;;
 ;; * Check if env LOCALAPPDATA dir contains existing snapshot run info.
 ;; * for each file:
 ;; ** check in and out check checksums, if one of them not match, redo file
@@ -124,7 +134,7 @@
 ;; ** if both match simply return existing file
 
 
-;; Cache operations 
+;; Cache operations
 (def run-info-spec
   {:name :string
    :mbin {:file :file :digest :string}
@@ -218,7 +228,7 @@
 
 
 (defn mbin-cached?
-  "get a map of mbin :file and :digest. 
+  "get a map of mbin :file and :digest.
    Return true if both mbin and exml entries exist in a converter cache and
    their digests are matching"
   [new-file]
@@ -240,7 +250,7 @@
 
 ;; MBIN decompiler invocation
 (defn exml
-  "given a mbin file `file` run MBINComplier on it to get a EXML file 
+  "given a mbin file `file` run MBINComplier on it to get a EXML file
    and return such EXML file back"
   [file]
   (info "Running MBIN -> EXML conversion for " (.toString (.toPath file)))
@@ -278,7 +288,8 @@
   (update (file-and-digest (second (list-lang-files)))
           :file #(.getPath %))
 
-  (clojure.java.io/file (System/getenv "LOCALAPPDATA") ".nms-converter-cache")
+  (persist-cache @run-cache)
+  (slurp cache-file)
   @run-cache)
 
 
@@ -289,7 +300,7 @@
 
 (defn language-files!
   "Take MBIN language files from location based on configuration
-   and produces a list of EXML files. 
+   and produces a list of EXML files.
    Will recreate EXML files from scratch running full MBIN -> EXML
    transfromation step."
   []
@@ -300,7 +311,7 @@
 
 (defn substance-file!
   "Take MBIN substance file from location based on configuration
-   and produces EXML file. 
+   and produces EXML file.
    Will recreate EXML file from scratch running full MBIN -> EXML
    transfromation step."
   []
@@ -311,7 +322,7 @@
 
 (defn product-file!
   "Take MBIN product file from location based on configuration
-   and produces EXML file. 
+   and produces EXML file.
    Will recreate EXML file from scratch running full MBIN -> EXML
    transfromation step."
   []
@@ -322,7 +333,7 @@
 
 (defn recipe-file!
   "Take MBIN product file from location based on configuration
-   and produces EXML file. 
+   and produces EXML file.
    Will recreate EXML file from scratch running full MBIN -> EXML
    transfromation step."
   []

@@ -14,6 +14,7 @@
   :plugins [[lein-environ "1.1.0"]]
 
   :min-lein-version "2.5.0"
+  :jvm-opts ["-Xmx1g"]
 
   :profiles {:dev {:dependencies [[nrepl "0.7.0"]
                                   [pjstadig/humane-test-output "0.10.0"]]

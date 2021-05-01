@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Leiningen: com.grammarly/omniconf:0.4.2">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/com/grammarly/omniconf/0.4.2/omniconf-0.4.2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

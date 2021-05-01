@@ -19,3 +19,4 @@ resources/public/js/
 .calva/*
 .clj-kondo/*
 .lsp/*
+.idea/*

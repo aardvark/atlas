@@ -2,7 +2,8 @@
   (:require [clojure.string]
             [clojure.java.io]
             [clojure.zip :as zip]
-            [clojure.data.xml :as xml]))
+            [clojure.data.xml :as xml]
+            [net.fiendishplatypus.zip :refer [parse-zip]]))
 
 
 (defn extract
@@ -16,26 +17,19 @@
              (:value (:attrs (first (:content x))))))))
 
 
-(defn parse-zip
-  "Given xml zipper `z` and accumulator `acc` traverse zipper
-   collect all \"TkLocalisationEntry.xml\" values and return them
-  "
-  [z acc]
-  (if (nil? z) acc
-      (let [n (zip/node z)]
-        (if (= (zip/next z) z)
-          acc
-          (if (and (= :Property (:tag n))
-                   (= "TkLocalisationEntry.xml" (get-in n [:attrs :value] "")))
-            (recur (clojure.zip/right z) (merge (extract (:content n)) acc))
-            (recur (clojure.zip/next z) acc))))))
+(defn language-node-matcher 
+  "Given a zip/node `n` return true if node match language node"
+  [n]
+  (and (= :Property (:tag n))
+       (= "TkLocalisationEntry.xml" (get-in n [:attrs :value] ""))))
 
 (defn language
   [xml _]
   (parse-zip
+   language-node-matcher
+   (fn [n] (extract (:content n)))
    (zip/xml-zip
-    (xml/parse-str xml))
-   {}))
+    (xml/parse-str xml))))
 
 
 (def index-meta {:start-mark "TkLocalisationEntry.xml"

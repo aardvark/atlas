@@ -11,7 +11,7 @@
             [net.fiendishplatypus.nms.setup :as setup]
             [taoensso.timbre :as timbre
              :refer [info]]
-            [taoensso.tufte :as tufte :refer (defnp p profile)])
+            [taoensso.tufte :as tufte])
 
   (:import [java.io RandomAccessFile]
            [java.nio ByteBuffer]))
@@ -284,7 +284,7 @@
   ;;     :result {:id "FOOD_P_STELLAR", :type "Product", :amount "1"},
   ;;     :ingredients ({:id "STELLAR2", :type "Substance", :amount "1"})}
 
-(defnp recipe->substance-link
+(defn recipe->substance-link
   [recipe]
   (let [{:keys [id result ingredients]} recipe]
     (into {}
@@ -299,7 +299,7 @@
   ;; => {"FOOD_P_STELLAR" {:as-result ["RECIPE_2"]}, "STELLAR2" {:as-ingredient ["RECIPE_2"]}}
   ((second (recipe/from-file index load-record))))
 
-(defnp substance-recipes-table
+(defn substance-recipes-table
   [recipes]
   (apply merge-with (fn [a b]
                       {:as-result (concat (:as-result a) (:as-result b))
@@ -318,7 +318,7 @@
 ;;     "STELLAR2" {:as-result (), :as-ingredient ("RECIPE_2" "RECIPE_3")}}
 
 
-(defnp add-recipes-to-substance
+(defn add-recipes-to-substance
   [substance lookup-table]
   (merge substance (get lookup-table (:id substance))))
 
@@ -383,7 +383,7 @@
 (defonce substance-cache (atom {}))
 
 
-(defnp substances
+(defn substances
   []
   (if (empty? @substance-cache)
     (reset! substance-cache
@@ -392,7 +392,7 @@
 
 (defonce recipes-cache (atom {}))
 
-(defnp recipes
+(defn recipes
   []
   (if (empty? @recipes-cache)
     (reset! recipes-cache
@@ -401,7 +401,7 @@
 
 (defonce products-cache (atom {}))
 
-(defnp products
+(defn products
   []
   (if (empty? @products-cache)
     (reset! products-cache
@@ -417,7 +417,7 @@
 (comment (reset-caches))
 
 
-(defnp get-substance
+(defn get-substance
   [substance]
   (let [substances                        (substances)
         recipes                           (recipes)
@@ -525,13 +525,14 @@
                 (concat
                  (list-for-ui :as-result)
                  (list-for-ui :as-ingredient)))))
-(comment
-  (get substance-db (get (name->id) "Salty Juice"))
-  (spit "resources/public/nameToIdLookup.edn" (pr-str (name->id))))
 
 (defn substance-db
   []
   (into {} (mapcat (fn [x] {(:id x) x}) (substances->ui))))
+
+(comment
+  (get substance-db (get (name->id) "Salty Juice"))
+  (spit "resources/public/nameToIdLookup.edn" (pr-str (name->id))))
 
 ;;(spit "resources/public/substance-db.edn" (pr-str (substance-db)))
 

@@ -3,7 +3,7 @@
             [clojure.java.io]
             [clojure.zip :as zip]
             [clojure.data.xml :as xml]
-            [net.fiendishplatypus.zip :refer [parse-zip]]))
+            [net.fiendishplatypus.zip :as z]))
 
 
 (defn extract
@@ -25,7 +25,7 @@
 
 (defn language
   [xml _]
-  (parse-zip
+  (z/parse-zip
    language-node-matcher
    (fn [n] (extract (:content n)))
    (zip/xml-zip

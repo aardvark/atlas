@@ -9,6 +9,8 @@
   (setup/init-config args)
   (cache/init-cache)
   (setup/create-files)
+  (cache/persist-cache)
+  (index/substance-dictionary)
   (index/substances))
 
 (comment (-main []))

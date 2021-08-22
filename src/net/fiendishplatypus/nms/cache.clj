@@ -58,29 +58,31 @@
   (reset! run-cache (preload-cache)))
 
 
-(defn- persist-cache
+(defn persist-cache
   "Take existing cache map `cache` and save it to the file `cache-file`"
-  [cache-file cache]
-  (let [cache (letfn [(to-path [x [k v]]
-                        [k (update-in v
-                                      [x :file]
-                                      (fn [x]
-                                        (if (= File (class x))
-                                          (.getPath x)
-                                          x)))])
-                      (strip-mbin []
-                        (partial to-path :mbin))
-                      (strip-exml []
-                        (partial to-path :exml))]
-                (into {} (map
-                           (comp (strip-exml) (strip-mbin)))
-                      cache))]
+  ([cache-file cache]
+   (let [cache (letfn [(to-path [x [k v]]
+                         [k (update-in v
+                                       [x :file]
+                                       (fn [x]
+                                         (if (= File (class x))
+                                           (.getPath x)
+                                           x)))])
+                       (strip-mbin []
+                         (partial to-path :mbin))
+                       (strip-exml []
+                         (partial to-path :exml))]
+                 (into {} (map
+                            (comp (strip-exml) (strip-mbin)))
+                       cache))]
 
-    (try
-      (with-open [w (clojure.java.io/writer cache-file)]
-        (spit w cache))
-      (catch RuntimeException e
-        (timbre/error e "Unable to persist cache" cache-file)))))
+     (try
+       (with-open [w (clojure.java.io/writer cache-file)]
+         (spit w cache))
+       (catch RuntimeException e
+         (timbre/error e "Unable to persist cache" cache-file)))))
+  ([]
+   (persist-cache (cache-file) @run-cache)))
 
 
 (defn update-cache

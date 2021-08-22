@@ -55,16 +55,11 @@
               (parse-substance)))
 
 
-(def index-meta {:start-mark "GcRealitySubstanceData.xml"
-                 :end? (fn [s] (= s "    </Property>"))
-                 :file (.getPath (setup/substance-file!))})
-
-
 (defn index
   [indexer]
-  (indexer (:start-mark index-meta) 
-           (:end? index-meta) 
-           (:file index-meta)))
+  (indexer "GcRealitySubstanceData.xml"
+           (fn [s] (= s "    </Property>"))
+           (.getPath (setup/substance-file!))))
 
 
 (defn from-file
@@ -72,7 +67,7 @@
   (let [index (index indexer)]
     (into {}
           (map 
-           (fn [entry] (substance (loader (:file index-meta) entry)))
+           (fn [entry] (substance (loader (.getPath (setup/substance-file!)) entry)))
            index))))
 
 

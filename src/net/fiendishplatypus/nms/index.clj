@@ -24,7 +24,7 @@
 
 (defn reducer
   [id? acc b]
-  (p :index-reducer
+  (tufte/p :index-reducer
      (let [a (nth acc 0)
            x (cond
           ;; found start marker. need to merge id and setup start
@@ -123,7 +123,8 @@
                       :id        "ASTEROID3"
                       :namelower "UI_ASTEROID3_NAME_L"}})
 
-(def lang-files
+(defn lang-files
+  []
   (map #(.getPath %) (setup/language-files!)))
 
 
@@ -237,7 +238,7 @@
 (defn substance-dictionary
   "Helper for full substance dictionary"
   []
-  (make-dictionary (search-for-all-substances) lang-files))
+  (make-dictionary (search-for-all-substances) (lang-files)))
 
 (comment
   (time (substance-dictionary)))
@@ -342,12 +343,12 @@
 
 (defn recipe-dictionary
   []
-  (make-dictionary (search-for (recipe/from-file index load-record) [:name]) lang-files))
+  (make-dictionary (search-for (recipe/from-file index load-record) [:name]) (lang-files)))
 
 
 (defn product-dictionary
   []
-  (make-dictionary (search-for (product/from-file index load-record) [:name :namelower]) lang-files))
+  (make-dictionary (search-for (product/from-file index load-record) [:name :namelower]) (lang-files)))
 
 
 (defn- preload-dictionary
@@ -356,7 +357,7 @@
    (clojure.set/union (search-for (recipe/from-file index load-record) [:name])
                       (search-for (substance/from-file index load-record) [:name :namelower])
                       (search-for (product/from-file index load-record) [:name :namelower]))
-   lang-files)
+   (lang-files))
   nil)
 
 (defn- not-found
@@ -372,10 +373,10 @@
   (first (product-dictionary))
   (reset! dictionary-cache {})
   (tufte/add-basic-println-handler! {})
-  (profile {}
+  (tufte/profile {}
            (dotimes [_ 1]
              (preload-dictionary)))
-  (profile {}
+  (tufte/profile {}
            (make-dictionary (search-for-all-substances) [(first lang-files)]))
   (not-found))
 
@@ -483,7 +484,7 @@
   (reset! dictionary-cache {})
   (preload-dictionary)
   (tufte/add-basic-println-handler! {})
-  (profile {}
+  (tufte/profile {}
            (dotimes [_ 5]
              (substances->ui))))
 

@@ -1,6 +1,6 @@
 (ns net.fiendishplatypus.nms.index-test
   (:require [net.fiendishplatypus.nms.index :as t]
-            [clojure.test :refer [deftest is testing]]))
+            [clojure.test :refer [deftest is]]))
 
 
 (deftest id

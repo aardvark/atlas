@@ -138,16 +138,7 @@
   (into {} 
         (map parse-ingredient 
              (:content (xml/parse-str xml)))))
-;; => #'net.fiendishplatypus.nms.recipe.parser/recipe
 
-
-(comment 
-  (recipe
-   (index/load-record "resources/nms/recipes-example.xml" 
-                      (first
-                       (index/index (fn [s] (.contains s "GcRefinerRecipe.xml"))
-                                    (fn [s] (= s "    </Property>"))
-                                    "resources/nms/recipes-example.xml")))))
 ;; => {:id "REFINERECIPE_14",
 ;;     :name "RECIPE_OXYGEN",
 ;;     :time-to-make "20",
@@ -156,23 +147,18 @@
 ;;     :ingredients ({:id "OXYGEN", :type "Substance", :amount "1"})}
 
 
-(def index-meta {:start-mark "GcRefinerRecipe.xml"
-                 :end? (fn [s] (= s "    </Property>"))
-                 :file (.getPath (setup/recipe-file!))})
-
-
 (defn index
   [indexer]
-  (indexer (:start-mark index-meta)
-           (:end? index-meta)
-           (:file index-meta)))
+  (indexer "GcRefinerRecipe.xml"
+           (fn [s] (= s "    </Property>"))
+           (.getPath (setup/recipe-file!))))
 
 
 (defn from-file
   [indexer loader]
   (into {}
         (map (fn [record]
-               (let [entity (recipe (loader (:file index-meta) record))]
+               (let [entity (recipe (loader (.getPath (setup/recipe-file!)) record))]
                  {(:id entity) entity}))
              (index indexer))))
              

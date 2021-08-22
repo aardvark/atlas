@@ -17,5 +17,5 @@
           (if (= (zip/next z) z)
             acc
             (if (match? n)
-              (recur (clojure.zip/right z) (merge (tform n) acc))
-              (recur (clojure.zip/next z) acc)))))))
+              (recur (zip/right z) (merge (tform n) acc))
+              (recur (zip/next z) acc)))))))

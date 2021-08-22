@@ -1,113 +1,100 @@
 (ns net.fiendishplatypus.nms.setup
   "Contain accessor functions for EXML files and for calling
    MBINCompiler process.
-   Should be mostly used to rerun dictonaries creation when new
+   Should be mostly used to rerun dictionaries creation when new
    version of NMS is released and recipes data can be changed.
    Invoking EXML files will run a full MBIN -> EXML transformation steps.
 
    Input (MBIN) output (EXML) file pairs are checked by hash to skip
-   MBINComplier calls when not needed."
+   MBINCompiler calls when not needed."
   (:require [clojure.java.io]
             [clojure.java.shell]
             [clojure.string]
             [clojure.edn]
             [omniconf.core :as cfg]
-            [taoensso.timbre :as timbre
-             :refer [log  trace  debug  info  warn  error  fatal  report
-                     logf tracef debugf infof warnf errorf fatalf reportf
-                     spy get-env]]))
+            [taoensso.timbre :as timbre :refer [debug info error]]
+            [net.fiendishplatypus.nms.file :as file])
+  (:import (java.io FilenameFilter File PushbackReader IOException)
+           (java.security MessageDigest DigestInputStream)))
 
 ;; Configuration
 
-(cfg/define
-  {:mbin-compiler-dir {:description "Directory where MBINCompiler.exe can be found"
-                       :type :string}
-   :nms-unpacked-root {:description "Directory root for NMS unpacked files"
-                       :type :string}
+(defn init-config
+  [args]
 
-   :lang-mbin-dir {:description "Directory where MBIN LANGUAGE files are located"
-                   :type :string}
-   :substance-mbin-dir {:description "Directory where NMS_REALITY_GCSUBSTANCETABLE.MBIN can be found"
+  (cfg/define
+    {:mbin-compiler-dir {:description "Directory where MBINCompiler.exe can be found"
+                         :type :string}
+     :nms-unpacked-root {:description "Directory root for NMS unpacked files"
+                         :type :string}
+
+     :lang-mbin-dir {:description "Directory where MBIN LANGUAGE files are located"
+                     :type :string}
+     :substance-mbin-dir {:description "Directory where NMS_REALITY_GCSUBSTANCETABLE.MBIN can be found"
+                          :type :string}
+     :product-mbin-dir {:description "Directory where NMS_REALITY_GCPRODUCTTABLE.MBIN can be found"
                         :type :string}
-   :product-mbin-dir {:description "Directory where NMS_REALITY_GCPRODUCTTABLE.MBIN can be found"
-                      :type :string}
-   :recipe-mbin-dir {:description "Directory where NMS_REALITY_GCRECIPETABLE.MBIN be found"
-                     :type :string}})
+     :recipe-mbin-dir {:description "Directory where NMS_REALITY_GCRECIPETABLE.MBIN be found"
+                       :type :string}})
 
-
-(defn init-config []
   (let [f (clojure.java.io/file (System/getenv "LOCALAPPDATA")
                                 "nms-atlas-converter.config.edn")]
     (if (.exists f) (cfg/populate-from-file f)
-        (cfg/populate-from-map
-        ;;  TODO: Pass root from parameters "net.fiendishplatypus.nms.setup.unpacked.root"
-         {
-          :mbin-compiler-dir "C:\\Projects\\NoManSkyMods"
+        (do
+          (cfg/populate-from-cmd args)
+          (let [root (or (cfg/get :nms-unpacked-root) "C:\\Projects\\NMSUnpacked")]
+            (cfg/populate-from-map
+              ;;  TODO: Pass root from parameters "net.fiendishplatypus.nms.setup.unpacked.root"
+             {:mbin-compiler-dir "C:\\Projects\\NoManSkyMods"
 
-          :nms-unpacked-root "C:\\Projects\\NMSUnpacked"
-          :lang-mbin-dir "C:\\Projects\\NMSUnpacked\\LANGUAGE"
+              :lang-mbin-dir (str root "\\LANGUAGE")
 
-          :substance-mbin-dir "C:\\Projects\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
-          :substance-filename "NMS_REALITY_GCSUBSTANCETABLE.MBIN"
+              :substance-mbin-dir (str root "\\METADATA\\REALITY\\TABLES")
+              :substance-filename "NMS_REALITY_GCSUBSTANCETABLE.MBIN"
 
-          :product-mbin-dir "C:\\Projects\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
-          :product-filename "NMS_REALITY_GCPRODUCTTABLE.MBIN"
+              :product-mbin-dir (str root "\\METADATA\\REALITY\\TABLES")
+              :product-filename "NMS_REALITY_GCPRODUCTTABLE.MBIN"
 
-          :recipe-mbin-dir "C:\\Projects\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
-          :recipe-filename "NMS_REALITY_GCRECIPETABLE.MBIN"}))))
-
-
-
+              :recipe-mbin-dir (str root "\\METADATA\\REALITY\\TABLES")
+              :recipe-filename "NMS_REALITY_GCRECIPETABLE.MBIN"}))))
+    (cfg/verify)))
 
 ;; MBIN file lookup operation
 
-(defn product-mbin-file
-  []
-  (clojure.java.io/file (cfg/get :product-mbin-dir)
-                        (cfg/get :product-filename)))
-
-(defn substance-mbin-file
-  []
-  (clojure.java.io/file (cfg/get :substance-mbin-dir)
-                        (cfg/get :substance-filename)))
-
-(defn recipe-mbin-file
-  []
-  (clojure.java.io/file (cfg/get :recipe-mbin-dir)
-                        (cfg/get :recipe-filename)))
-
-(defn engilsh-lang-file?
+(defn english-lang-file?
   [name]
   (not (nil? (re-matches #"NMS_\w+_ENGLISH.MBIN" name))))
 
 
-(def engilsh-lang-file
+(def english-lang-file
   (reify
-    java.io.FilenameFilter
+    FilenameFilter
     (accept [this _ name]
-      (engilsh-lang-file? name))))
+      (english-lang-file? name))))
 
 
 (defn list-lang-files
   ([path-to-lang-dir]
-   (.listFiles (java.io.File. path-to-lang-dir)
-               engilsh-lang-file))
+   (.listFiles (File. ^String path-to-lang-dir)
+               ^FilenameFilter english-lang-file))
   ([]
    (list-lang-files (cfg/get :lang-mbin-dir))))
 
 ;; File checksum operations
 
 (defn file-to-a-digest
-  [file]
-  (let [md (java.security.MessageDigest/getInstance "SHA-256")
+  "Take a `file` and return sha256 digest of said file"
+  [^File file]
+  (let [md (MessageDigest/getInstance "SHA-256")
         digest-arr (with-open [s (clojure.java.io/make-input-stream file {})
-                               dis (new java.security.DigestInputStream s md)]
+                               dis (new DigestInputStream s md)]
                      (while (not= (.read dis) -1))
                      (.digest (.getMessageDigest dis)))]
     digest-arr))
 
 (defn file-and-digest
-  [file]
+  "Take a java.ioFile and return map with :file and :digest sha-256 string for a given file"
+  [^File file]
   {:file file
    :digest (clojure.string/join (map #(format "%02x" %)
                                      (seq (file-to-a-digest file))))})
@@ -134,100 +121,19 @@
 ;; ** if both match simply return existing file
 
 
-;; Cache operations
-(def run-info-spec
-  {:name :string
-   :mbin {:file :file :digest :string}
-   :exml {:file :file :digest :string}})
-
-(def cache-file
-  (clojure.java.io/file (System/getenv "LOCALAPPDATA") "nms-atlas-converter.cache"))
-
-(defn- load-edn
-  "Load edn from an io/reader source (filename or io/resource)."
-  [source]
-  (try
-    (with-open [r (clojure.java.io/reader source)]
-      (clojure.edn/read (java.io.PushbackReader. r)))
-
-    (catch java.io.IOException e
-      (printf "Couldn't open '%s': %s\n" source (.getMessage e)))
-    (catch RuntimeException e
-      (printf "Error parsing edn file '%s': %s\n" source (.getMessage e)))))
-
-
-(defn- preload-cache
-  []
-  (if (.exists cache-file)
-    (do (info "Found existing cache file:" cache-file)
-        (load-edn cache-file))
-    {}))
-
-
-(defn persist-cache
-  [run-cache]
-  (let [run-cache (letfn [(to-path [x [k v]]
-                            [k (update-in v
-                                          [x :file]
-                                          (fn [x]
-                                            (if (= java.io.File (class x))
-                                              (.getPath x)
-                                              x)))])
-                          (strip-mbin []
-                            (partial to-path :mbin))
-                          (strip-exml []
-                            (partial to-path :exml))]
-                    (into {} (map
-                              (comp (strip-exml) (strip-mbin)))
-                          run-cache))]
-
-    (try
-      (with-open [w (clojure.java.io/writer cache-file)]
-        (spit w run-cache))
-      (catch RuntimeException e
-        (error e "Unable to persist cache t " cache-file)))))
-
-
-(def run-cache
-  (atom (preload-cache)))
-
-(comment
-  "Cache operations"
-  @run-cache
-  (letfn [(to-path [x [k v]]
-            [k (update-in v [x :file] (fn [^java.io.File x] (.getPath x)))])
-          (strip-mbin []
-            (partial to-path :mbin))
-          (strip-exml []
-            (partial to-path :exml))]
-    (into {} (map
-              (comp (strip-exml) (strip-mbin)))
-          @run-cache))
-  (persist-cache @run-cache)
-  (load-edn
-   (clojure.java.io/file (System/getenv "LOCALAPPDATA")
-                         "nms-atlas-converter.cache")))
-
-
-(defn file-to-name-ext-pair
-  [filename]
-  (let [[name ext] (clojure.string/split filename #"\.")]
-    {:name name :ext ext}))
-
-
 (defn cache-entry
   [file]
-  (let [name (:name (file-to-name-ext-pair (.getName file)))]
-    (get @run-cache name)))
+   (get @run-cache (file/name file)))
 
-(defn exml-cached?
+
+(defn- exml-cached?
   [cache-entry]
   (let [cached-exml-digest (get-in cache-entry [:exml :digest] "")
         current-exml-digest (:digest (file-and-digest (get-in cache-entry [:exml :file])))]
     (= cached-exml-digest current-exml-digest)))
 
 
-(defn mbin-cached?
+(defn cached?
   "get a map of mbin :file and :digest.
    Return true if both mbin and exml entries exist in a converter cache and
    their digests are matching"
@@ -236,21 +142,21 @@
         new-mbin-digest (:digest new-file)
         cached-mbin-digest (get-in cache-entry [:mbin :digest] "")
         mbin-match (= cached-mbin-digest new-mbin-digest)]
-    (info "MBIN cache check for" (:file new-file) "(" mbin-match ")")
+    (timbre/info "MBIN cache check for" (:file new-file) "(" mbin-match ")")
     (if mbin-match
-      (do (debug "MBIN" (:file new-file) "cached.")
+      (do (timbre/debug "MBIN" (:file new-file) "cached.")
           (if (exml-cached? cache-entry)
-            (do (debug "EXML" (:file new-file) "cached.")
+            (do (timbre/debug "EXML" (:file new-file) "cached.")
                 true)
             false))
       false)))
 
 (comment
-  (mbin-cached? (file-and-digest (first (list-lang-files)))))
+  (cached? (file-and-digest (first (list-lang-files)))))
 
 ;; MBIN decompiler invocation
-(defn exml
-  "given a mbin file `file` run MBINComplier on it to get a EXML file
+(defn to-exml
+  "given a mbin file `file` run MBINCompiler on it to get a EXML file
    and return such EXML file back"
   [file]
   (info "Running MBIN -> EXML conversion for " (.toString (.toPath file)))
@@ -259,28 +165,26 @@
         parent-dir (.getParent file)
         exml-file-path (str parent-dir
                             "\\"
-                            (:name (file-to-name-ext-pair filename))
+                            (file/name filename)
                             ".EXML")
         mbin-compiler-dir (cfg/get :mbin-compiler-dir)
         _  (clojure.java.shell/with-sh-dir mbin-compiler-dir
              (clojure.java.shell/sh "cmd.exe" "/C" "call" "MBINCompiler.exe" "-q" path-str))
-        exml (java.io.File. exml-file-path)]
+        exml (File. exml-file-path)]
     exml))
 
 
-(defn mbin->exml
+(defn- mbin->exml
   ""
   [file-def]
-  (if (mbin-cached? file-def)
+  (if (cached? file-def)
     (:exml (cache-entry (:file file-def)))
     ;; not cached so we need to run exml transformation
     (let [file (:file file-def)
-          filename (:name (file-to-name-ext-pair (.getName file)))
-          exml-def (file-and-digest (exml file))]
-      (swap! run-cache (fn [c k v]
-                         (assoc c k v))
-             filename {:mbin file-def
-                       :exml exml-def})
+          filename (file/name (.getName file))
+          exml-def (file-and-digest (to-exml file))]
+
+      (update-cache run-cache filename {:mbin file-def :exml exml-def})
       exml-def)))
 
 (comment
@@ -302,7 +206,7 @@
   "Take MBIN language files from location based on configuration
    and produces a list of EXML files.
    Will recreate EXML files from scratch running full MBIN -> EXML
-   transfromation step."
+   transformation step."
   []
   (map (comp #(:file %)
              mbin->exml
@@ -313,36 +217,47 @@
   "Take MBIN substance file from location based on configuration
    and produces EXML file.
    Will recreate EXML file from scratch running full MBIN -> EXML
-   transfromation step."
+   transformation step."
   []
   ((comp #(:file %)
          mbin->exml
          file-and-digest)
-   (substance-mbin-file)))
+   (clojure.java.io/file (cfg/get :substance-mbin-dir)
+                         (cfg/get :substance-filename))))
 
 (defn product-file!
   "Take MBIN product file from location based on configuration
    and produces EXML file.
    Will recreate EXML file from scratch running full MBIN -> EXML
-   transfromation step."
+   transformation step."
   []
   ((comp #(:file %)
          mbin->exml
          file-and-digest)
-   (product-mbin-file)))
+   (clojure.java.io/file (cfg/get :product-mbin-dir)
+                         (cfg/get :product-filename))))
 
 (defn recipe-file!
   "Take MBIN product file from location based on configuration
    and produces EXML file.
    Will recreate EXML file from scratch running full MBIN -> EXML
-   transfromation step."
+   transformation step."
   []
   ((comp #(:file %)
          mbin->exml
          file-and-digest)
-   (recipe-mbin-file)))
+   (clojure.java.io/file (cfg/get :recipe-mbin-dir)
+                         (cfg/get :recipe-filename))))
 
-(init-config)
+;; (init-config)
+
+(defn create-files
+  []
+  (language-files!)
+  (substance-file!)
+  (product-file!)
+  (recipe-file!)
+  nil)
 
 (comment
   (language-files!)

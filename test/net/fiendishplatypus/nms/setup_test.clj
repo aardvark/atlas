@@ -6,8 +6,8 @@
 
 
 (deftest english-lang-file-matcher
-  (is (true? (t/engilsh-lang-file? "NMS_LOC1_ENGLISH.MBIN")))
-  (is (false? (t/engilsh-lang-file? "NMS_LOC1_GERMAN.MBIN"))))
+  (is (true? (t/english-lang-file? "NMS_LOC1_ENGLISH.MBIN")))
+  (is (false? (t/english-lang-file? "NMS_LOC1_GERMAN.MBIN"))))
 
 
 (def setup-example
@@ -19,28 +19,28 @@
    :product-filename "NMS_REALITY_GCPRODUCTTABLE.MBIN"})
 
 
-(defn- check-key 
+(defn- check-key
   [k]
-  (is (= (k setup-example) (omniconf.core/get k))
+  (is (= (k setup-example) (cfg/get k))
       (str "value of " k " is not correct")))
 
 (deftest env-value-from-file
   (testing "Env values from file population"
-    (omniconf.core/populate-from-file 
+    (cfg/populate-from-file
      (io/resource "resources/setup-example.edn")))
-    (testing (str "All keys from resources/setup-example.edn file should be loaded")
-      (check-key :lang-mbin-dir)
-      (check-key :mbin-compiler-dir)))
+  (testing (str "All keys from resources/setup-example.edn file should be loaded")
+    (check-key :lang-mbin-dir)
+    (check-key :mbin-compiler-dir)))
 
 
 (comment
-  ;; TODO: write a helper for accessing test resoruces
+  ;; TODO: write a helper for accessing test resources
   (io/resource "resources/setup-example.edn")
 
-  (omniconf.core/populate-from-file
-   (resource "resources/setup-example.edn"))
+  (cfg/populate-from-file
+   (io/resource "resources/setup-example.edn"))
 
-  (omniconf.core/get :lang-mbin-dir)
+  (cfg/get :lang-mbin-dir)
 
   (into {}
         (filter (fn [[k _]] (not (nil? (clojure.string/index-of k "PP")))))
@@ -52,4 +52,8 @@
            :substance-filename "NMS_REALITY_GCSUBSTANCETABLE.MBIN"
            :substance-mbin-dir "C:\\Projects\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
            :product-mbin-dir "C:\\Projects\\NMSUnpacked\\METADATA\\REALITY\\TABLES"
-           :product-filename "NMS_REALITY_GCPRODUCTTABLE.MBIN"}))
+           :product-filename "NMS_REALITY_GCPRODUCTTABLE.MBIN"})
+
+         (cfg/populate-from-cmd ["--nms-unpacked-root" "string"])
+         (cfg/get :nms-unpacked-root))
+

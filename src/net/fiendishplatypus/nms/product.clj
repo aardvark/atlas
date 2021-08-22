@@ -4,12 +4,6 @@
             [clojure.data.xml :as xml]
             [net.fiendishplatypus.nms.setup :as setup]))
 
-
-(def index-meta {:start-mark "GcProductData.xml"
-                 :end? (fn [s] (= s "    </Property>"))
-                 :file (.getPath (setup/product-file!))})
-
-
 (defn parse [m]
   (let [name  (get-in m [:attrs :name])
         value (get-in m [:attrs :value])]
@@ -33,15 +27,15 @@
 
 (defn index
   [indexer]
-  (indexer (:start-mark index-meta)
-           (:end? index-meta)
-           (:file index-meta)))
+  (indexer "GcProductData.xml"
+           (fn [s] (= s "    </Property>"))
+           (.getPath (setup/product-file!))))
 
 
 (defn from-file
   [indexer loader]
   (into {}
         (map (fn [record]
-               (let [entity (product (loader (:file index-meta) record))]
+               (let [entity (product (loader (.getPath (setup/product-file!)) record))]
                  {(:id entity) entity}))
              (index indexer))))

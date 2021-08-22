@@ -13,7 +13,8 @@
             [clojure.edn]
             [omniconf.core :as cfg]
             [taoensso.timbre :as timbre :refer [debug info error]]
-            [net.fiendishplatypus.nms.file :as file])
+            [net.fiendishplatypus.nms.file :as file]
+            [net.fiendishplatypus.nms.cache :as cache])
   (:import (java.io FilenameFilter File PushbackReader IOException)
            (java.security MessageDigest DigestInputStream)))
 
@@ -80,79 +81,12 @@
   ([]
    (list-lang-files (cfg/get :lang-mbin-dir))))
 
-;; File checksum operations
-
-(defn file-to-a-digest
-  "Take a `file` and return sha256 digest of said file"
-  [^File file]
-  (let [md (MessageDigest/getInstance "SHA-256")
-        digest-arr (with-open [s (clojure.java.io/make-input-stream file {})
-                               dis (new DigestInputStream s md)]
-                     (while (not= (.read dis) -1))
-                     (.digest (.getMessageDigest dis)))]
-    digest-arr))
-
-(defn file-and-digest
-  "Take a java.ioFile and return map with :file and :digest sha-256 string for a given file"
-  [^File file]
-  {:file file
-   :digest (clojure.string/join (map #(format "%02x" %)
-                                     (seq (file-to-a-digest file))))})
-
-(comment
-  (map file-and-digest (list-lang-files)))
 
 
-;; `file-and-digest` function can be used to do a smart conversion.
-;; Meaning we can only run conversion to XML if new file is different
-;; from previous one.
-;; This raise a separate question of storing 'conversion-run'
-;; results somewhere and loading them for checking on the next run
-;; saving map of :filename and :sha256sum should be enough
-;; :mbin-file and :exml-file parameters can be always added as they
-;; appear in the processing step
-;;
-;; How this should work?
-;;
-;; * Check if env LOCALAPPDATA dir contains existing snapshot run info.
-;; * for each file:
-;; ** check in and out check checksums, if one of them not match, redo file
-;;    conversion
-;; ** if both match simply return existing file
 
 
-(defn cache-entry
-  [file]
-   (get @run-cache (file/name file)))
 
 
-(defn- exml-cached?
-  [cache-entry]
-  (let [cached-exml-digest (get-in cache-entry [:exml :digest] "")
-        current-exml-digest (:digest (file-and-digest (get-in cache-entry [:exml :file])))]
-    (= cached-exml-digest current-exml-digest)))
-
-
-(defn cached?
-  "get a map of mbin :file and :digest.
-   Return true if both mbin and exml entries exist in a converter cache and
-   their digests are matching"
-  [new-file]
-  (let [cache-entry (cache-entry (:file new-file))
-        new-mbin-digest (:digest new-file)
-        cached-mbin-digest (get-in cache-entry [:mbin :digest] "")
-        mbin-match (= cached-mbin-digest new-mbin-digest)]
-    (timbre/info "MBIN cache check for" (:file new-file) "(" mbin-match ")")
-    (if mbin-match
-      (do (timbre/debug "MBIN" (:file new-file) "cached.")
-          (if (exml-cached? cache-entry)
-            (do (timbre/debug "EXML" (:file new-file) "cached.")
-                true)
-            false))
-      false)))
-
-(comment
-  (cached? (file-and-digest (first (list-lang-files)))))
 
 ;; MBIN decompiler invocation
 (defn to-exml
@@ -177,28 +111,15 @@
 (defn- mbin->exml
   ""
   [file-def]
-  (if (cached? file-def)
-    (:exml (cache-entry (:file file-def)))
+  (if (cache/cached? file-def)
+    (:exml (cache/entry (:file file-def)))
     ;; not cached so we need to run exml transformation
     (let [file (:file file-def)
           filename (file/name (.getName file))
-          exml-def (file-and-digest (to-exml file))]
+          exml-def (file/file-and-digest (to-exml file))]
 
-      (update-cache run-cache filename {:mbin file-def :exml exml-def})
+      (cache/update-cache filename {:mbin file-def :exml exml-def})
       exml-def)))
-
-(comment
-  (mbin->exml (file-and-digest (second (list-lang-files))))
-  (update (file-and-digest (second (list-lang-files)))
-          :file #(.getPath %))
-
-  (persist-cache @run-cache)
-  (slurp cache-file)
-  @run-cache)
-
-
-  ;; => {:file #object[java.io.File 0x4496a00e "D:\\NMSUnpacked\\LANGUAGE\\NMS_LOC1_ENGLISH.EXML"],
-  ;;     :digest "bf249b8fa2e067955b3564bd93858e02b9a094da8c8a6012ceb6cc0555b4d708"}
 
 ;; EXML file accessors
 
@@ -210,7 +131,7 @@
   []
   (map (comp #(:file %)
              mbin->exml
-             file-and-digest)
+             file/file-and-digest)
        (list-lang-files)))
 
 (defn substance-file!
@@ -221,7 +142,7 @@
   []
   ((comp #(:file %)
          mbin->exml
-         file-and-digest)
+         file/file-and-digest)
    (clojure.java.io/file (cfg/get :substance-mbin-dir)
                          (cfg/get :substance-filename))))
 
@@ -233,7 +154,7 @@
   []
   ((comp #(:file %)
          mbin->exml
-         file-and-digest)
+         file/file-and-digest)
    (clojure.java.io/file (cfg/get :product-mbin-dir)
                          (cfg/get :product-filename))))
 
@@ -245,7 +166,7 @@
   []
   ((comp #(:file %)
          mbin->exml
-         file-and-digest)
+         file/file-and-digest)
    (clojure.java.io/file (cfg/get :recipe-mbin-dir)
                          (cfg/get :recipe-filename))))
 
@@ -263,6 +184,5 @@
   (language-files!)
   (substance-file!)
   (product-file!)
-  (recipe-file!)
-  @run-cache)
+  (recipe-file!))
 

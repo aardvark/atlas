@@ -101,7 +101,7 @@
      - `input` -- data map for translation input keys are entity ids values are entity map
                   in which we need to translate some keys
      - `keys-to-translate` -- keys in input value that require translation
-   
+
    Return `input` data map with translated keys"
   [dict input keys-to-tranlate]
   (let [lookup-key (fn [m k] {k (get dict (get m k))})]
@@ -154,7 +154,7 @@
                (clojure.string/index-of s "\"" (+ 7 (clojure.string/index-of s "value=\""))))
    nil))
 
-(comment 
+(comment
   ;; => "SCAN_BROKEN"
   (id "      <Property name=\"Id\" value=\"SCAN_BROKEN\" />"))
 
@@ -351,7 +351,7 @@
   (make-dictionary (search-for (product/from-file index load-record) [:name :namelower]) (lang-files)))
 
 
-(defn- preload-dictionary
+(defn preload-dictionary
   []
   (make-dictionary
    (clojure.set/union (search-for (recipe/from-file index load-record) [:name])
@@ -360,7 +360,7 @@
    (lang-files))
   nil)
 
-(defn- not-found
+(defn not-found
   []
   (apply disj (clojure.set/union (search-for (recipe/from-file index load-record) [:name])
                                  (search-for (substance/from-file index load-record) [:name :namelower])
@@ -461,10 +461,10 @@
                                    (empty? (:as-result x)))))
                  (map get-substance
                       (vals (substances))))))
-  
+
   (get-substance
        (nth (vals (substances)) 2))
-  
+
   (get-substance (first (substances))))
 
 
@@ -602,7 +602,7 @@
   ;; Paraffinium -> Oxygen -> Star Bulb
   ;; Oxygen -> Paraffinium -> Star Bulb
   ;; Nitrogen -> Paraffinium -> Star Bulb
-  
+
   (get (substance-dictionary) "FOOD_ICE_NAME_L")
   (search-for {"PLANT_CAVE" {:name "UI_PLANTSUB_CAVE_NAME", :id "PLANT_CAVE", :namelower "UI_PLANTSUB_CAVE_NAME_L"}}
               [:name :namelower]))

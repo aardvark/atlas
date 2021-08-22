@@ -10,8 +10,10 @@
   (cache/init-cache)
   (setup/create-files)
   (cache/persist-cache)
-  (index/substance-dictionary)
-  (index/substances))
+  (index/preload-dictionary)
+  (index/substances)
+  (index/recipes)
+  (index/products))
 
 (comment (-main []))
 

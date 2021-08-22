@@ -108,7 +108,7 @@
     exml))
 
 
-(defn- mbin->exml
+(defn- mbin->exml-priv
   ""
   [file-def]
   (if (cache/cached? file-def)
@@ -120,6 +120,9 @@
 
       (cache/update-cache filename {:mbin file-def :exml exml-def})
       exml-def)))
+
+(def mbin->exml
+  (memoize mbin->exml-priv))
 
 ;; EXML file accessors
 
